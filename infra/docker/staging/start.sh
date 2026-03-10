@@ -30,7 +30,9 @@ mkdir -p \
     "${VOLUME_PATH}/models/clip" \
     "${VOLUME_PATH}/custom_nodes" \
     "${VOLUME_PATH}/outputs" \
-    "${VOLUME_PATH}/input"
+    "${VOLUME_PATH}/input" \
+    "${VOLUME_PATH}/.cache/huggingface" \
+    "${VOLUME_PATH}/.pip_cache"
 
 # ── Symlink volume into ComfyUI ───────────────────────────────────────────────
 # ComfyUI ships with its own models/, custom_nodes/, output/, input/ dirs.

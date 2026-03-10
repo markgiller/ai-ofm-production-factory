@@ -46,7 +46,9 @@ mkdir -p \
     "${VOLUME_PATH}/models/clip" \
     "${VOLUME_PATH}/custom_nodes" \
     "${VOLUME_PATH}/outputs" \
-    "${VOLUME_PATH}/input"
+    "${VOLUME_PATH}/input" \
+    "${VOLUME_PATH}/.cache/huggingface" \
+    "${VOLUME_PATH}/.pip_cache"
 
 echo "  Done."
 
