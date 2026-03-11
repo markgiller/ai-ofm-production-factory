@@ -1,13 +1,15 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Base: pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+# Base: pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
 #
 # Why this base:
-#   - PyTorch 2.3.1 + CUDA 12.1 + cuDNN 8 pre-integrated and tested together
+#   - PyTorch 2.8.0 + CUDA 12.8 + cuDNN 9 — supports both RTX 4090 (Ada,
+#     SM_89) and RTX 5090 (Blackwell, SM_100). CUDA 12.1 does not support
+#     Blackwell. CUDA 12.8 is fully backward-compatible with Ada.
 #   - `runtime` (not `devel`): ComfyUI does not compile CUDA kernels at build
-#     time → ~4GB image vs ~12GB for devel
+#     time → smaller image footprint
 #   - Avoids manual Python/CUDA installation and version mismatch issues
 # ──────────────────────────────────────────────────────────────────────────────
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
 
 # ── Pinned versions ───────────────────────────────────────────────────────────
 # Any upgrade must go through staging changelog first.
@@ -35,14 +37,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Torch ecosystem ───────────────────────────────────────────────────────────
-# torchvision, torchaudio, xformers MUST come from the PyTorch CUDA 12.1 index.
+# torchvision, torchaudio, xformers MUST come from the PyTorch CUDA 12.8 index.
 # Installing xformers from PyPI will silently use a CPU-only build on CUDA hosts,
-# degrading performance and VRAM efficiency on the 4090.
+# degrading performance and VRAM efficiency on the 4090/5090.
 RUN pip install --no-cache-dir \
     torchvision \
     torchaudio \
     xformers \
-    --index-url https://download.pytorch.org/whl/cu121
+    --index-url https://download.pytorch.org/whl/cu128
 
 # ── ComfyUI Python dependencies ───────────────────────────────────────────────
 # Installed separately from ComfyUI's own requirements.txt for layer cache
