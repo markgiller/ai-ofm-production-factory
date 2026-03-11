@@ -233,15 +233,15 @@ changelog          TEXT
 active             BOOLEAN DEFAULT true
 ```
 
-**review_scores** — gate scores for quality control
+**review_scores** — gate scores for quality control (6 binary gates)
 ```
 job_id             TEXT PRIMARY KEY REFERENCES jobs(id)
-hook_score         SMALLINT             0 or 1
-identity_score     SMALLINT             0 or 1
-composition_score  SMALLINT             0 or 1
-lighting_score     SMALLINT             0 or 1
-detail_score       SMALLINT             0 or 1
-motion_score       SMALLINT             0 or 1
+identity_score     SMALLINT             0 or 1 — character identity stable
+polish_score       SMALLINT             0 or 1 — skin, light, detail finish
+shot_score         SMALLINT             0 or 1 — composition, framing, hook
+motion_score       SMALLINT             0 or 1 — natural movement, no morphing
+thumbnail_score    SMALLINT             0 or 1 — works as standalone thumbnail
+channel_score      SMALLINT             0 or 1 — fits platform specs
 publish_readiness  NUMERIC(3,1)
 notes              TEXT
 ```
