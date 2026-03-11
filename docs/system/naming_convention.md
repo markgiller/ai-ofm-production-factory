@@ -25,7 +25,7 @@ All system identifiers follow the same base principles.
 
 ## Character case
 
-All names use:
+All file names, folder names, keys, and identifiers use:
 
 ```
 lowercase snake_case
@@ -44,9 +44,10 @@ Not allowed:
 ```
 spaces
 camelCase
-kebab-case
 special symbols
 ```
+
+S3 bucket names are the only entity that uses hyphens — see §16.
 
 ---
 
@@ -351,32 +352,44 @@ chara_signature_pose_v001.png
 
 # 11. Storage Path Naming
 
-Storage keys must follow the system storage architecture.
-
-Base bucket:
+Storage keys follow the two-bucket architecture. Buckets:
 
 ```
-s3://ofm-prod/
+s3://ofm-staging/           ← SFW lane (staging)
+s3://ofm-staging-adult/     ← Adult lane (staging)
+s3://ofm-prod/              ← SFW lane (production)
+s3://ofm-prod-adult/        ← Adult lane (production)
 ```
 
-Paths:
+Folder structure (identical in both SFW and adult buckets):
 
 ```
 refs/
-outputs/raw/YYYY/MM/DD/
-outputs/final/YYYY/MM/DD/
-workflow_snapshots/
-review_assets/
+  characters/<character_id>/
+  styles/<style_name>/
+  locations/
+  backgrounds/
+outputs/
+  raw/YYYY/MM/DD/
+  final/YYYY/MM/DD/
+workflow_snapshots/YYYY/MM/DD/
+review_assets/YYYY/MM/DD/
+sequences/seq_YYYY_MM_DD_<char>_####/
 thumbs/
 audio/
 voice/
 captions/
 ```
 
-Example:
+Examples:
 
 ```
-s3://ofm-prod/outputs/raw/2026/03/09/job_2026_03_09_chara_sfw_hero_00421.png
+s3://ofm-staging/outputs/raw/2026/03/11/chara_sfw_hero_mirror_9x16_v001_seed483829.png
+s3://ofm-staging/outputs/raw/2026/03/11/job_2026_03_11_chara_sfw_hero_00421.json
+s3://ofm-staging/workflow_snapshots/2026/03/11/job_2026_03_11_chara_sfw_hero_00421_workflow.json
+s3://ofm-staging/review_assets/2026/03/11/review_job_2026_03_11_chara_sfw_hero_00421_contactsheet.png
+s3://ofm-staging/refs/characters/chara/chara_face_v004.png
+s3://ofm-staging/sequences/seq_2026_03_11_chara_0007/seq_2026_03_11_chara_0007_master.mp4
 ```
 
 ---
@@ -448,3 +461,41 @@ A clean naming system enables:
 - scaling
 
 Without strict naming, the factory collapses into chaos.
+
+---
+
+# 16. Bucket Naming
+
+S3 bucket names use hyphens as separators.
+
+Format:
+
+```
+<project>-<environment>
+<project>-<environment>-<lane>
+```
+
+Examples:
+
+```
+ofm-staging
+ofm-staging-adult
+ofm-prod
+ofm-prod-adult
+```
+
+Hyphens are required by S3 bucket naming rules. All other system identifiers use snake_case.
+
+---
+
+# 17. Lane Separation
+
+SFW and adult assets must never share a bucket.
+
+Rules:
+
+- SFW assets → `ofm-staging` / `ofm-prod`
+- Adult assets → `ofm-staging-adult` / `ofm-prod-adult`
+- Both buckets use the same storage provider and credentials
+- The `lane` field in a manifest must match the bucket the asset is stored in
+- Cross-lane storage paths are a critical error

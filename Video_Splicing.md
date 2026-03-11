@@ -648,7 +648,7 @@ AI_OFM_Production_Pipeline_v
 Добавь поля:
 
 {
-"sequence_id": "seq_2026_03_09_charA_0007",
+"sequence_id": "seq_2026_03_09_chara_0007",
 "target_duration_sec": 165,
 "channel_preset": "premium_vertical",
 "segment_plan": [
@@ -726,7 +726,7 @@ POST /sequence/jobs
 
 {
 "lane": "sfw",
-"character_id": "charA",
+"character_id": "chara",
 "brief_id": "brief_2026_03_09_0021",
 "workflow": "SEQ_plan_v1",
 "params": {
@@ -741,9 +741,9 @@ POST /sequence/assemble
 Собирает rough cut из готового пула.
 
 {
-"sequence_id": "seq_2026_03_09_charA_0007",
+"sequence_id": "seq_2026_03_09_chara_0007",
 "clip_pool_query": {
-"character_id": "charA",
+"character_id": "chara",
 "accepted": true,
 "types": ["anchor", "bridge", "detail", "exit"]
 },
