@@ -1,0 +1,44 @@
+services:
+  comfyui_production:
+    build:
+      context: ../docker/production
+      dockerfile: Dockerfile
+      args:
+        # Must stay in sync with COMFYUI_VERSION in production.env
+        # Any version bump requires staging validation first.
+        COMFYUI_VERSION: ${COMFYUI_VERSION:-v0.16.4}
+    image: markgiller/ofm_comfyui_production:latest
+    container_name: comfyui_production
+    restart: always
+
+    ports:
+      - "${COMFYUI_PORT:-8188}:8188"
+
+    volumes:
+      # On Runpod: network volume auto-mounts at /workspace
+      # Local dev: set NETWORK_VOLUME_PATH=./local_workspace in your shell
+      - "${NETWORK_VOLUME_PATH:-/workspace}:/workspace"
+
+    env_file:
+      - ../env/production.env
+
+    environment:
+      # These override production.env if set in the shell environment.
+      - COMFYUI_PORT=${COMFYUI_PORT:-8188}
+      - NETWORK_VOLUME_PATH=${NETWORK_VOLUME_PATH:-/workspace}
+      - VRAM_MODE=${VRAM_MODE:-highvram}
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
