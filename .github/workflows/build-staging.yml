@@ -18,6 +18,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # GitHub Actions runner поставляется с ~14GB диска, большая часть занята
+      # ненужным нам ПО (Android SDK ~8GB, .NET, Haskell и т.д.).
+      # Этот шаг освобождает ~30GB перед сборкой тяжёлого CUDA image.
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       # Buildx даёт layer caching и более быструю сборку
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
