@@ -51,7 +51,7 @@ This phase gives the factory its creative identity and repeatable production cap
 | House aesthetic | Style LoRA, skin finish, lens behavior, light logic, color mood, editorial polish | разные сцены ощущаются как один бренд | TODO |
 | Shot grammar | 8 shot types: hero close-up, medium conversational, mirror, entrance/walking, seated idle, over-shoulder, reaction, CTA end frame | у каждого shot type есть prompt block, refs, preferred ratios, failure modes, repair rules и примеры winners | TODO |
 | Workflow library | 5 versioned ComfyUI JSON graphs (explore/hero/repair/video/finish) | workflow versionируется, имеет changelog и snapshot при запуске job | TODO |
-| FLUX integration | Download split files from Comfy-Org/flux2-klein, run verify_comfyui.py --flux | FLUX.2-klein генерирует стабильный output через API | IN PROGRESS |
+| FLUX integration | Download split files from Comfy-Org/flux2-klein, run verify_comfyui.py --flux | FLUX.2-klein генерирует стабильный output через API | DONE |
 
 ### Model layer (prerequisite for workflows)
 - Image backbone: FLUX.2 [klein] 4B — explore, hero, repair, editing
