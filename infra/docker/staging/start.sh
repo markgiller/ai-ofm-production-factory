@@ -21,6 +21,8 @@ echo "[start] ensuring volume directory structure..."
 
 mkdir -p \
     "${VOLUME_PATH}/models/checkpoints" \
+    "${VOLUME_PATH}/models/diffusion_models" \
+    "${VOLUME_PATH}/models/text_encoders" \
     "${VOLUME_PATH}/models/vae" \
     "${VOLUME_PATH}/models/loras/characters" \
     "${VOLUME_PATH}/models/loras/styles" \

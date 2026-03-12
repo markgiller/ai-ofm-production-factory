@@ -37,6 +37,8 @@ echo "[1/4] Creating directory structure..."
 
 mkdir -p \
     "${VOLUME_PATH}/models/checkpoints" \
+    "${VOLUME_PATH}/models/diffusion_models" \
+    "${VOLUME_PATH}/models/text_encoders" \
     "${VOLUME_PATH}/models/vae" \
     "${VOLUME_PATH}/models/loras/characters" \
     "${VOLUME_PATH}/models/loras/styles" \
@@ -103,14 +105,25 @@ echo "  Use huggingface-cli for Hugging Face models."
 echo "  Verify model hashes after download."
 echo "============================================================"
 echo ""
-echo "  Image model — FLUX.2 [klein] 4B"
-echo "  Destination: ${VOLUME_PATH}/models/checkpoints/"
+echo "  Image model — FLUX.2 [klein] 4B (3 split files from Comfy-Org)"
+echo "  Source: https://huggingface.co/Comfy-Org/flux2-klein"
+echo "  Sizes: diffusion ~7.75 GB, text encoder ~8.04 GB, VAE ~336 MB"
 echo ""
-echo "    huggingface-cli download <flux2_klein_repo_id> \\"
-echo "        --local-dir ${VOLUME_PATH}/models/checkpoints/flux2_klein_4b"
+echo "  # 1. VAE (smallest, download first)"
+echo "  wget -O ${VOLUME_PATH}/models/vae/flux2-vae.safetensors \\"
+echo "    \"https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors\""
 echo ""
-echo "  NOTE: Replace <flux2_klein_repo_id> with the correct Hugging Face"
-echo "  repo ID. Verify model hash against the official release."
+echo "  # 2. Diffusion model (distilled, 4 steps)"
+echo "  wget -O ${VOLUME_PATH}/models/diffusion_models/flux-2-klein-4b.safetensors \\"
+echo "    \"https://huggingface.co/Comfy-Org/flux2-klein/resolve/main/split_files/diffusion_models/flux-2-klein-4b.safetensors\""
+echo ""
+echo "  # 3. Text encoder (Qwen3 4B)"
+echo "  wget -O ${VOLUME_PATH}/models/text_encoders/qwen_3_4b.safetensors \\"
+echo "    \"https://huggingface.co/Comfy-Org/flux2-klein/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors\""
+echo ""
+echo "  # 4. Optional: base model (20 steps, higher quality)"
+echo "  wget -O ${VOLUME_PATH}/models/diffusion_models/flux-2-klein-base-4b.safetensors \\"
+echo "    \"https://huggingface.co/Comfy-Org/flux2-klein/resolve/main/split_files/diffusion_models/flux-2-klein-base-4b.safetensors\""
 echo ""
 echo "  Video model — Wan 2.2 TI2V-5B"
 echo "  Destination: ${VOLUME_PATH}/models/video_models/"

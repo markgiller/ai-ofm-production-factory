@@ -2,11 +2,9 @@
 # scripts/verify_comfyui.py
 #
 # End-to-end smoke test for ComfyUI headless API.
-# Submits a minimal FLUX.2 [klein] workflow via JSON, waits for completion,
-# confirms an output file was produced.
-#
-# This is the Phase 1 Runtime gate:
-#   "Готово, когда: workflow запускается JSON'ом, а не руками."
+# Two modes:
+#   --model-free  (default) EmptyImage → SaveImage. Proves API works, no models needed.
+#   --flux        FLUX.2-klein full pipeline. Proves image generation works end-to-end.
 #
 # Checks:
 #   1. /system_stats — ComfyUI is up, GPU visible
@@ -19,12 +17,15 @@
 #
 # Usage:
 #   export COMFYUI_URL=https://<pod-id>-8188.proxy.runpod.net
-#   python3 scripts/verify_comfyui.py
+#   python3 scripts/verify_comfyui.py              # model-free API test
+#   python3 scripts/verify_comfyui.py --flux        # FLUX.2 generation test
 #
 # Options:
-#   --steps N      KSampler steps (default: 4, fast enough for verify)
-#   --width W      image width  (default: 512)
-#   --height H     image height (default: 512)
+#   --flux         use FLUX.2-klein workflow (requires models on volume)
+#   --model-free   use EmptyImage workflow (default, no models needed)
+#   --steps N      KSampler steps (default: 4)
+#   --width W      image width  (default: 512 model-free, 576 flux)
+#   --height H     image height (default: 512 model-free, 1024 flux)
 #   --timeout T    max seconds to wait for job (default: 300)
 
 import argparse
@@ -41,24 +42,13 @@ except ImportError:
     sys.exit(1)
 
 
-# ── Minimal FLUX.2 [klein] workflow ──────────────────────────────────────────
-# Nodes: DualCLIPLoader → CLIPTextEncode (positive) → UNETLoader →
-#        EmptyLatentImage → BasicScheduler → SamplerCustomAdvanced →
-#        VAELoader → VAEDecode → SaveImage
-#
-# Uses model filenames as installed by setup instructions:
-#   /workspace/models/checkpoints/flux2_klein_4b/  ← FLUX checkpoint
-#
-# For a headless API test we use a simplified KSampler-based graph that
-# ComfyUI's built-in nodes can handle without custom nodes.
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Workflow builders ────────────────────────────────────────────────────────
 
-def build_workflow(steps: int, width: int, height: int, seed: int) -> dict:
+def build_model_free_workflow(width: int, height: int) -> dict:
     """
-    Minimal model-free pipeline test — proves ComfyUI API accepts JSON + executes on GPU.
-    No model loading required: EmptyImage creates a solid black frame, SaveImage writes it.
-    This is the Phase 1 API gate — text-to-image (FLUX) is a Phase 2 task.
-    Pipeline: EmptyImage → SaveImage
+    Model-free pipeline: EmptyImage → SaveImage.
+    Proves ComfyUI API accepts JSON + executes. No models needed.
+    Phase 1 API gate.
     """
     return {
         "1": {
@@ -80,6 +70,118 @@ def build_workflow(steps: int, width: int, height: int, seed: int) -> dict:
     }
 
 
+def build_flux_workflow(steps: int, width: int, height: int, seed: int) -> dict:
+    """
+    FLUX.2-klein full pipeline. Proves image generation works end-to-end.
+    Requires 3 model files on the volume:
+      models/diffusion_models/flux-2-klein-4b.safetensors
+      models/text_encoders/qwen_3_4b.safetensors
+      models/vae/flux2-vae.safetensors
+
+    Pipeline: UNETLoader + CLIPLoader + VAELoader →
+              CLIPTextEncode → CFGGuider →
+              EmptyFlux2LatentImage + Flux2Scheduler + KSamplerSelect + RandomNoise →
+              SamplerCustomAdvanced → VAEDecode → SaveImage
+    """
+    return {
+        "1": {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": "flux-2-klein-4b.safetensors",
+                "weight_dtype": "default"
+            }
+        },
+        "2": {
+            "class_type": "CLIPLoader",
+            "inputs": {
+                "clip_name": "qwen_3_4b.safetensors",
+                "type": "flux2"
+            }
+        },
+        "3": {
+            "class_type": "VAELoader",
+            "inputs": {
+                "vae_name": "flux2-vae.safetensors"
+            }
+        },
+        "4": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": "A photorealistic portrait of a woman with soft studio lighting, looking directly at the camera, shallow depth of field, editorial photography",
+                "clip": ["2", 0]
+            }
+        },
+        "5": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": "",
+                "clip": ["2", 0]
+            }
+        },
+        "6": {
+            "class_type": "CFGGuider",
+            "inputs": {
+                "model": ["1", 0],
+                "positive": ["4", 0],
+                "negative": ["5", 0],
+                "cfg": 1.0
+            }
+        },
+        "7": {
+            "class_type": "EmptyFlux2LatentImage",
+            "inputs": {
+                "width": width,
+                "height": height,
+                "batch_size": 1
+            }
+        },
+        "8": {
+            "class_type": "Flux2Scheduler",
+            "inputs": {
+                "steps": steps,
+                "width": width,
+                "height": height
+            }
+        },
+        "9": {
+            "class_type": "KSamplerSelect",
+            "inputs": {
+                "sampler_name": "euler"
+            }
+        },
+        "10": {
+            "class_type": "RandomNoise",
+            "inputs": {
+                "noise_seed": seed
+            }
+        },
+        "11": {
+            "class_type": "SamplerCustomAdvanced",
+            "inputs": {
+                "noise": ["10", 0],
+                "guider": ["6", 0],
+                "sampler": ["9", 0],
+                "sigmas": ["8", 0],
+                "latent_image": ["7", 0]
+            }
+        },
+        "12": {
+            "class_type": "VAEDecode",
+            "inputs": {
+                "samples": ["11", 0],
+                "vae": ["3", 0]
+            }
+        },
+        "13": {
+            "class_type": "SaveImage",
+            "inputs": {
+                "images": ["12", 0],
+                "filename_prefix": "flux2_klein_verify"
+            }
+        }
+    }
+
+
 def check(label: str, ok: bool, detail: str = "") -> bool:
     status = "✓" if ok else "✗"
     msg = f"  {status} {label}"
@@ -91,11 +193,26 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
 
 def main():
     parser = argparse.ArgumentParser(description="ComfyUI end-to-end smoke test")
-    parser.add_argument("--steps",   type=int, default=4,   help="KSampler steps (default: 4)")
-    parser.add_argument("--width",   type=int, default=512, help="Image width (default: 512)")
-    parser.add_argument("--height",  type=int, default=512, help="Image height (default: 512)")
-    parser.add_argument("--timeout", type=int, default=300, help="Max wait seconds (default: 300)")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--flux", action="store_true",
+                            help="FLUX.2-klein full pipeline (requires models)")
+    mode_group.add_argument("--model-free", action="store_true", default=True,
+                            help="EmptyImage test, no models needed (default)")
+    parser.add_argument("--steps",   type=int, default=None, help="Steps (default: 4)")
+    parser.add_argument("--width",   type=int, default=None, help="Image width")
+    parser.add_argument("--height",  type=int, default=None, help="Image height")
+    parser.add_argument("--timeout", type=int, default=300,  help="Max wait seconds (default: 300)")
     args = parser.parse_args()
+
+    # Set defaults based on mode
+    if args.flux:
+        args.steps = args.steps or 4
+        args.width = args.width or 576
+        args.height = args.height or 1024
+    else:
+        args.steps = args.steps or 4
+        args.width = args.width or 512
+        args.height = args.height or 512
 
     base_url = os.environ.get("COMFYUI_URL", "").rstrip("/")
     if not base_url:
@@ -104,10 +221,11 @@ def main():
         sys.exit(1)
 
     seed = int(uuid.uuid4()) % (2**32)
+    mode_name = "FLUX.2-klein" if args.flux else "model-free"
     results = []
 
     print(f"\n[comfyui] {base_url}")
-    print(f"          steps={args.steps} size={args.width}x{args.height} seed={seed}")
+    print(f"          mode={mode_name} steps={args.steps} size={args.width}x{args.height} seed={seed}")
 
     # ── 1. /system_stats ──────────────────────────────────────────────────────
     print("\n[1/5] system_stats...")
@@ -124,7 +242,10 @@ def main():
 
     # ── 2. POST /prompt ───────────────────────────────────────────────────────
     print("\n[2/5] submitting workflow...")
-    workflow = build_workflow(args.steps, args.width, args.height, seed)
+    if args.flux:
+        workflow = build_flux_workflow(args.steps, args.width, args.height, seed)
+    else:
+        workflow = build_model_free_workflow(args.width, args.height)
     client_id = str(uuid.uuid4())
     payload = {"prompt": workflow, "client_id": client_id}
 
@@ -215,8 +336,12 @@ def main():
     print(f"  {passed}/{total} checks passed")
 
     if all(results):
-        print("\nComfyUI API layer OK. Runtime gate: PASS.")
-        print("Phase 1 — Skeleton: COMPLETE.")
+        if args.flux:
+            print("\nFLUX.2-klein pipeline OK. Image generation: PASS.")
+            print("Phase 2 — FLUX integration: COMPLETE.")
+        else:
+            print("\nComfyUI API layer OK. Runtime gate: PASS.")
+            print("Phase 1 — Skeleton: COMPLETE.")
         sys.exit(0)
     else:
         print("\nSome checks failed. See details above.")
