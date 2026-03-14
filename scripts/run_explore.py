@@ -26,6 +26,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 try:
     import requests
@@ -52,19 +53,30 @@ FORMATS = {
     "2:3":  (576, 864),
 }
 
-WORKFLOW_TEMPLATE = Path(__file__).resolve().parent.parent / "workflows" / "explore" / "IMG_explore_v001.json"
+_WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows" / "explore"
+WORKFLOW_TEMPLATE = _WORKFLOWS_DIR / "IMG_explore_v001.json"
+WORKFLOW_TEMPLATE_V002 = _WORKFLOWS_DIR / "IMG_explore_v002.json"
+WORKFLOW_TEMPLATE_V002_BASE = _WORKFLOWS_DIR / "IMG_explore_v002_base.json"
 
 
 # ── Workflow injection ────────────────────────────────────────────────────────
 
-def load_workflow() -> dict:
-    """Load the explore workflow template."""
-    with open(WORKFLOW_TEMPLATE, "r") as f:
+def load_workflow(version: str = "v001") -> dict:
+    """Load the explore workflow template by version."""
+    paths = {
+        "v001": WORKFLOW_TEMPLATE,
+        "v002": WORKFLOW_TEMPLATE_V002,
+        "v002_base": WORKFLOW_TEMPLATE_V002_BASE,
+    }
+    path = paths.get(version)
+    if path is None or not path.exists():
+        raise FileNotFoundError(f"Workflow template not found: {version} ({path})")
+    with open(path, "r") as f:
         return json.load(f)
 
 
 def inject_params(workflow: dict, prompt: str, width: int, height: int, seed: int, prefix: str) -> dict:
-    """Inject parameters into a copy of the workflow template."""
+    """Inject parameters into a copy of the v001 workflow template (Mode A)."""
     wf = copy.deepcopy(workflow)
     wf["4"]["inputs"]["text"] = prompt          # positive prompt
     wf["7"]["inputs"]["width"] = width          # EmptyFlux2LatentImage
@@ -73,6 +85,24 @@ def inject_params(workflow: dict, prompt: str, width: int, height: int, seed: in
     wf["8"]["inputs"]["height"] = height
     wf["10"]["inputs"]["noise_seed"] = seed     # RandomNoise
     wf["13"]["inputs"]["filename_prefix"] = prefix  # SaveImage
+    return wf
+
+
+def inject_params_v002(workflow: dict, prompt: str, width: int, height: int,
+                       seed: int, prefix: str, lora_name: str,
+                       lora_strength: float) -> dict:
+    """Inject parameters into a copy of the v002 workflow template (Mode B with LoRA)."""
+    wf = copy.deepcopy(workflow)
+    wf["4"]["inputs"]["text"] = prompt
+    wf["7"]["inputs"]["width"] = width
+    wf["7"]["inputs"]["height"] = height
+    wf["8"]["inputs"]["width"] = width
+    wf["8"]["inputs"]["height"] = height
+    wf["10"]["inputs"]["noise_seed"] = seed
+    wf["13"]["inputs"]["filename_prefix"] = prefix
+    wf["14"]["inputs"]["lora_name"] = lora_name
+    wf["14"]["inputs"]["strength_model"] = lora_strength
+    wf["14"]["inputs"]["strength_clip"] = lora_strength
     return wf
 
 
@@ -204,6 +234,9 @@ def run_explore(
     seed_start: int,
     base_url: str,
     output_dir: Path,
+    lora: Optional[str] = None,
+    lora_strength: float = 0.8,
+    base_model: bool = False,
 ) -> dict:
     """Core explore function. Returns results dict."""
 
@@ -213,12 +246,30 @@ def run_explore(
     session_dir = output_dir / session_id
     session_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load workflow template
-    template = load_workflow()
+    # Mode B (LoRA) or Mode A (text-only)
+    mode_b = lora is not None
+    if mode_b:
+        version = "v002_base" if base_model else "v002"
+        template = load_workflow(version)
+        steps = 20 if base_model else 4
+        cfg = 4.0 if base_model else 1.0
+        mode_label = "B_identity"
+        prefix_tag = "explore_b"
+    else:
+        template = load_workflow("v001")
+        steps = 4
+        cfg = 1.0
+        mode_label = "A_text"
+        prefix_tag = "explore"
 
     print(f"[explore] Session: {session_id}")
+    if mode_b:
+        model_tag = "BASE" if base_model else "distilled"
+        print(f"[explore] Mode B: LoRA identity-locked ({lora}, strength={lora_strength}, {model_tag})")
+    else:
+        print(f"[explore] Mode A: text-only explore")
     print(f"[explore] Prompt: \"{prompt[:80]}{'...' if len(prompt) > 80 else ''}\"")
-    print(f"[explore] Config: {width}x{height} ({fmt}), 4 steps, CFG 1.0")
+    print(f"[explore] Config: {width}x{height} ({fmt}), {steps} steps, CFG {cfg}")
     print(f"[explore] Generating {count} images...\n")
 
     results = []
@@ -228,7 +279,7 @@ def run_explore(
 
     for i in range(count):
         seed = seed_start + i
-        filename = f"explore_{fmt_label}_seed{seed}.png"
+        filename = f"{prefix_tag}_{fmt_label}_seed{seed}.png"
         save_path = session_dir / filename
 
         t0 = time.time()
@@ -236,7 +287,13 @@ def run_explore(
         gen_time = None
 
         try:
-            wf = inject_params(template, prompt, width, height, seed, f"explore_{fmt_label}_{seed}")
+            if mode_b:
+                wf = inject_params_v002(template, prompt, width, height, seed,
+                                        f"{prefix_tag}_{fmt_label}_{seed}",
+                                        lora, lora_strength)
+            else:
+                wf = inject_params(template, prompt, width, height, seed,
+                                   f"{prefix_tag}_{fmt_label}_{seed}")
             prompt_id = submit_prompt(base_url, wf)
             wait_for_completion(base_url, prompt_id, timeout=300)
             output_name = get_output_filename(base_url, prompt_id)
@@ -287,12 +344,16 @@ def run_explore(
     results_data = {
         "session_id": session_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": mode_label,
         "prompt": prompt,
         "format": fmt,
         "size": f"{width}x{height}",
         "model": "flux2_klein_4b",
-        "steps": 4,
-        "cfg": 1.0,
+        "model_variant": "base" if base_model else "distilled",
+        "steps": steps,
+        "cfg": cfg,
+        "lora": lora,
+        "lora_strength": lora_strength if mode_b else None,
         "results": results,
         "contact_sheet": contact_sheet_name if image_paths else None,
         "succeeded": succeeded,
@@ -356,6 +417,12 @@ Prompt tips:
 
 Formats:  9:16  4:5  1:1  16:9  3:4  2:3
 
+Mode B (LoRA identity lock):
+  %(prog)s --prompt "same girl, red dress, rooftop" --lora lora_lily_v001.safetensors --count 30
+  %(prog)s --prompt "same girl, cozy bedroom" --lora lora_lily_v001.safetensors --base-model --count 30
+
+  --lora-strength guide: 0.5=soft, 0.7=balanced, 0.8=production, 0.9=hard lock, 1.0=max
+
 Examples:
   %(prog)s --prompt "woman, 25yo, soft studio lighting, looking at camera" --count 20
   %(prog)s --prompt "woman in red dress, golden hour, rooftop" --count 10 --format 4:5
@@ -374,6 +441,12 @@ Examples:
                         help="Output directory (default: ./explore_output)")
     parser.add_argument("--comfyui-url", type=str, default=None,
                         help="ComfyUI API URL (default: from COMFYUI_URL env)")
+    parser.add_argument("--lora", type=str, default=None,
+                        help="LoRA filename for Mode B identity lock (e.g. lora_lily_v001.safetensors)")
+    parser.add_argument("--lora-strength", type=float, default=0.8,
+                        help="LoRA strength 0.0-1.0 (default: 0.8)")
+    parser.add_argument("--base-model", action="store_true",
+                        help="Use BASE model (20 steps, CFG 4.0) instead of distilled (4 steps). Better LoRA quality, slower")
     parser.add_argument("--cleanup", type=int, metavar="DAYS",
                         help="Remove explore sessions older than N days and exit")
     args = parser.parse_args()
@@ -408,6 +481,10 @@ Examples:
         print(f"  {e}")
         sys.exit(1)
 
+    # Warn if --base-model without --lora
+    if args.base_model and not args.lora:
+        print("Warning: --base-model has no effect without --lora (Mode A always uses distilled)")
+
     # Default seed
     seed_start = args.seed if args.seed is not None else random.randint(1000, 999999)
 
@@ -418,6 +495,9 @@ Examples:
         seed_start=seed_start,
         base_url=base_url,
         output_dir=output_dir,
+        lora=args.lora,
+        lora_strength=args.lora_strength,
+        base_model=args.base_model,
     )
 
 
