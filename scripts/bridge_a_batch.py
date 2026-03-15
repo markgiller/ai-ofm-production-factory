@@ -39,10 +39,10 @@ PROMPTS = [
     "IMG_2256.HEIC, a candid raw photo of a young woman, 3/4 portrait, overcast soft light, laughing expression, natural moment, shot on Fujifilm X-T5",
 ]
 
-SEEDS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
+SEEDS = [3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900]
 
 REF_IMAGE = "reference.png"
-IPA_WEIGHT = 0.6
+IPA_WEIGHT = 0.75
 
 
 def build_workflow(prompt_text, seed):
@@ -62,7 +62,7 @@ def build_workflow(prompt_text, seed):
         "10": {"class_type": "RandomNoise",           "inputs": {"noise_seed": seed}},
         "11": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["10", 0], "guider": ["6", 0], "sampler": ["9", 0], "sigmas": ["8", 0], "latent_image": ["7", 0]}},
         "12": {"class_type": "VAEDecode",             "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
-        "13": {"class_type": "SaveImage",             "inputs": {"images": ["12", 0], "filename_prefix": "bridge_b"}},
+        "13": {"class_type": "SaveImage",             "inputs": {"images": ["12", 0], "filename_prefix": "bridge_c"}},
     }
 
 
