@@ -34,7 +34,7 @@ def build_workflow(prompt_text, seed):
         "4":  {"class_type": "CLIPTextEncode",        "inputs": {"text": prompt_text, "clip": ["2", 0]}},
         "5":  {"class_type": "FluxGuidance",          "inputs": {"conditioning": ["4", 0], "guidance": 3.5}},
         "15": {"class_type": "LoadImage",             "inputs": {"image": REF_IMAGE}},
-        "16": {"class_type": "IPAdapterFluxLoader",   "inputs": {"ipadapter": "ip-adapter.bin", "clip_vision": "sigclip_vision_patch14_384.safetensors", "provider": "cuda"}},
+        "16": {"class_type": "IPAdapterFluxLoader",   "inputs": {"ipadapter": "ip-adapter.bin", "clip_vision": "google/siglip-so400m-patch14-384", "provider": "cuda"}},
         "17": {"class_type": "ApplyIPAdapterFlux",    "inputs": {"model": ["1", 0], "ip_adapter_flux": ["16", 0], "image": ["15", 0], "weight": IPA_WEIGHT}},
         "6":  {"class_type": "BasicGuider",           "inputs": {"model": ["17", 0], "conditioning": ["5", 0]}},
         "7":  {"class_type": "EmptyLatentImage",      "inputs": {"width": 576, "height": 1024, "batch_size": 1}},
