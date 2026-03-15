@@ -39,7 +39,7 @@ PROMPTS = [
     "IMG_2256.HEIC, a candid raw photo of a young woman, 3/4 portrait, overcast soft light, laughing expression, natural moment, shot on Fujifilm X-T5",
 ]
 
-SEEDS = [42, 137, 256, 512, 1024, 2048, 7777, 9999, 11111, 31337, 54321, 77777, 88888, 99999, 12345, 23456, 34567, 45678, 56789, 67890]
+SEEDS = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
 
 REF_IMAGE = "reference.png"
 IPA_WEIGHT = 0.6
