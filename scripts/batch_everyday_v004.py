@@ -19,11 +19,25 @@ from run_explore import run_explore
 from pathlib import Path
 import random
 
-# ── Face descriptor — embedded in prompts for high FaceSim ─────────────────
-# Keep consistent: describes chara's core features without overdoing it
+# ── Photorealism anchors for FLUX.2 Klein ──────────────────────────────────
+# FLUX responds to filename trick (IMG_XXXX.HEIC = iPhone snapshot aesthetic)
+# and camera/lens references. "ultrarealistic" etc. are SD-era noise — don't use.
+# Prose > keyword lists. CFG should stay low (1.0-2.5) for photorealism.
+
+# Face descriptor — keeps trigger word "chara" early, adds face features for FaceSim
 FACE = "chara, young woman with soft brown eyes and warm brunette hair"
 
+# Camera suffixes — randomly appended to each prompt for photo style anchoring
+CAMERAS = [
+    "shot on iPhone 14, natural skin texture",       # casual phone
+    "shot on iPhone 14, natural skin texture",       # casual phone (weight)
+    "shot on iPhone 14, natural skin texture",       # casual phone (weight)
+    "shot on Canon EOS R5, 85mm f/1.8, shallow depth of field",  # portrait
+    "shot on Fujifilm X-T5, 35mm f/1.4, natural color grading",  # street
+]
+
 # ── 100 ultra-realistic prompts ─────────────────────────────────────────────
+# FACE is embedded via f-string. Filename trick + camera added in main loop.
 EVERYDAY_PROMPTS = [
 
     # ── MORNING / WAKING UP (10) ──────────────────────────────────────────
@@ -176,6 +190,13 @@ def main():
     for i, prompt in enumerate(prompts):
         prompt_idx = i + args.start_prompt
         seed_start = random.randint(100000, 999999)
+
+        # Wrap prompt with FLUX photorealism anchors:
+        # IMG_XXXX.HEIC filename trick + random camera/lens reference
+        img_num = random.randint(1000, 9999)
+        cam = random.choice(CAMERAS)
+        full_prompt = f"IMG_{img_num}.HEIC. A candid raw photo, {prompt}, {cam}"
+
         short = prompt[20:70].replace(",", "").strip()
         print(f"\n{'='*60}")
         print(f"[batch] Prompt {prompt_idx+1}/{len(EVERYDAY_PROMPTS)}: {short}...")
@@ -183,7 +204,7 @@ def main():
 
         try:
             run_explore(
-                prompt=prompt,
+                prompt=full_prompt,
                 count=args.count_per_prompt,
                 fmt=FORMAT,
                 seed_start=seed_start,
