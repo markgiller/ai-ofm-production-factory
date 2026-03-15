@@ -35,7 +35,7 @@ def build_workflow(prompt_text, seed):
         "5":  {"class_type": "FluxGuidance",          "inputs": {"conditioning": ["4", 0], "guidance": 3.5}},
         "15": {"class_type": "LoadImage",             "inputs": {"image": REF_IMAGE}},
         "16": {"class_type": "IPAdapterFluxLoader",   "inputs": {"ipadapter": "ip-adapter.bin", "clip_vision": "google/siglip-so400m-patch14-384", "provider": "cuda"}},
-        "17": {"class_type": "ApplyIPAdapterFlux",    "inputs": {"model": ["1", 0], "ip_adapter_flux": ["16", 0], "image": ["15", 0], "weight": IPA_WEIGHT}},
+        "17": {"class_type": "ApplyIPAdapterFlux",    "inputs": {"model": ["1", 0], "ip_adapter_flux": ["16", 0], "image": ["15", 0], "weight": IPA_WEIGHT, "start_percent": 0.0, "end_percent": 1.0}},
         "6":  {"class_type": "BasicGuider",           "inputs": {"model": ["17", 0], "conditioning": ["5", 0]}},
         "7":  {"class_type": "EmptyLatentImage",      "inputs": {"width": 576, "height": 1024, "batch_size": 1}},
         "8":  {"class_type": "BasicScheduler",        "inputs": {"model": ["17", 0], "scheduler": "simple", "steps": 20, "denoise": 1.0}},
@@ -50,7 +50,11 @@ def build_workflow(prompt_text, seed):
 def queue_job(workflow):
     data = json.dumps({"prompt": workflow}).encode()
     req = urllib.request.Request(BASE_URL + "/prompt", data=data, headers={"Content-Type": "application/json"})
-    resp = json.loads(urllib.request.urlopen(req).read())
+    try:
+        resp = json.loads(urllib.request.urlopen(req).read())
+    except urllib.error.HTTPError as e:
+        print("ERROR:", e.read().decode())
+        raise
     return resp["prompt_id"]
 
 
