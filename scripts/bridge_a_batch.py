@@ -62,7 +62,7 @@ def build_workflow(prompt_text, seed):
         "10": {"class_type": "RandomNoise",           "inputs": {"noise_seed": seed}},
         "11": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["10", 0], "guider": ["6", 0], "sampler": ["9", 0], "sigmas": ["8", 0], "latent_image": ["7", 0]}},
         "12": {"class_type": "VAEDecode",             "inputs": {"samples": ["11", 0], "vae": ["3", 0]}},
-        "13": {"class_type": "SaveImage",             "inputs": {"images": ["12", 0], "filename_prefix": "bridge_a"}},
+        "13": {"class_type": "SaveImage",             "inputs": {"images": ["12", 0], "filename_prefix": "bridge_b"}},
     }
 
 
