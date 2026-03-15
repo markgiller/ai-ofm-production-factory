@@ -65,7 +65,7 @@ def init_face_analyzer(gpu_id: int = 0) -> FaceAnalysis:
     return app
 
 
-def get_face_embedding(app: FaceAnalysis, img_path: str) -> dict | None:
+def get_face_embedding(app: FaceAnalysis, img_path: str) -> Optional[dict]:
     """Extract face embedding and quality metrics from image.
 
     Returns dict with:
@@ -121,7 +121,7 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 
 # ── Diversity Clustering ──────────────────────────────────────────────────────
 
-def select_diverse(candidates: list[dict], top_n: int, diversity_threshold: float = 0.85) -> list[dict]:
+def select_diverse(candidates: list, top_n: int, diversity_threshold: float = 0.85) -> list:
     """Select top_n candidates maximizing diversity.
 
     Greedy selection: take best candidate, then skip any too similar
@@ -169,7 +169,7 @@ def compute_score(face_sim: float, face_size: float, sharpness: float, det_score
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def find_images(input_paths: list[str]) -> list[Path]:
+def find_images(input_paths: list) -> list:
     """Recursively find all PNG/JPG images in input paths."""
     images = []
     for p in input_paths:
