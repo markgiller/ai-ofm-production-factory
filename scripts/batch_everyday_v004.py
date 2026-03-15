@@ -172,8 +172,8 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="Batch 500 photos for v005 dataset candidates")
     parser.add_argument("--comfyui-url", type=str, required=True)
-    parser.add_argument("--count-per-prompt", type=int, default=5,
-                        help="Seeds per prompt (default: 5, total = 100 x 5 = 500 images)")
+    parser.add_argument("--count-per-prompt", type=int, default=1,
+                        help="Seeds per prompt (default: 1, total = 100 x 1 = 100 images)")
     parser.add_argument("--lora-strength", type=float, default=1.0)
     parser.add_argument("--start-prompt", type=int, default=0,
                         help="Skip first N prompts (for resuming interrupted runs)")
@@ -212,6 +212,7 @@ def main():
                 output_dir=OUTPUT_DIR,
                 lora=LORA_NAME,
                 lora_strength=args.lora_strength,
+                base_model=True,
             )
         except KeyboardInterrupt:
             print(f"\n[batch] Stopped at prompt {prompt_idx+1}. Resume with --start-prompt {prompt_idx}")
