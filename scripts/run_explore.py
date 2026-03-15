@@ -5,14 +5,29 @@ IMG Explore — generate variations to find winning compositions.
 Sends the same prompt with different seeds to ComfyUI and collects results
 into a contact sheet + results.json for easy selection.
 
+Supports two model backends:
+    flux2-klein  — FLUX.2 Klein 4B (legacy, v001/v002 workflows)
+    flux1-dev    — FLUX.1 Dev 12B (v003 workflows, IP-Adapter support)
+
 Usage:
+    # FLUX.1 Dev text-only:
     python scripts/run_explore.py \\
-        --prompt "woman, 25yo, brown hair, soft studio lighting, looking at camera" \\
-        --count 20 --format 4:5
+        --prompt "woman, 25yo, soft studio lighting" \\
+        --model flux1-dev --count 20
+
+    # FLUX.1 Dev + IP-Adapter (identity bridge):
+    python scripts/run_explore.py \\
+        --prompt "close-up portrait, soft light" \\
+        --model flux1-dev --ipadapter-ref /path/to/reference.png \\
+        --ipadapter-strength 0.6 --count 50
+
+    # Legacy FLUX.2 Klein:
+    python scripts/run_explore.py \\
+        --prompt "woman, looking at camera" --count 20
 
 Requires:
     - ComfyUI running (set COMFYUI_URL env var or use --comfyui-url)
-    - FLUX.2-klein-4B models on the volume
+    - Model files on the volume (see docs/sops/lora_training_workflow.md)
     - requests, Pillow
 """
 
@@ -57,6 +72,8 @@ _WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows" / "explore
 WORKFLOW_TEMPLATE = _WORKFLOWS_DIR / "IMG_explore_v001.json"
 WORKFLOW_TEMPLATE_V002 = _WORKFLOWS_DIR / "IMG_explore_v002.json"
 WORKFLOW_TEMPLATE_V002_BASE = _WORKFLOWS_DIR / "IMG_explore_v002_base.json"
+WORKFLOW_TEMPLATE_V003 = _WORKFLOWS_DIR / "IMG_explore_v003.json"
+WORKFLOW_TEMPLATE_V003_IPA = _WORKFLOWS_DIR / "IMG_explore_v003_ipadapter.json"
 
 
 # ── Workflow injection ────────────────────────────────────────────────────────
@@ -67,6 +84,8 @@ def load_workflow(version: str = "v001") -> dict:
         "v001": WORKFLOW_TEMPLATE,
         "v002": WORKFLOW_TEMPLATE_V002,
         "v002_base": WORKFLOW_TEMPLATE_V002_BASE,
+        "v003": WORKFLOW_TEMPLATE_V003,
+        "v003_ipadapter": WORKFLOW_TEMPLATE_V003_IPA,
     }
     path = paths.get(version)
     if path is None or not path.exists():
@@ -106,7 +125,46 @@ def inject_params_v002(workflow: dict, prompt: str, width: int, height: int,
     return wf
 
 
+def inject_params_v003(workflow: dict, prompt: str, width: int, height: int,
+                       seed: int, prefix: str) -> dict:
+    """Inject parameters into a v003 FLUX.1 Dev workflow (text-only)."""
+    wf = copy.deepcopy(workflow)
+    wf["4"]["inputs"]["text"] = prompt          # CLIPTextEncode
+    wf["7"]["inputs"]["width"] = width          # EmptyLatentImage
+    wf["7"]["inputs"]["height"] = height
+    wf["10"]["inputs"]["noise_seed"] = seed     # RandomNoise
+    wf["13"]["inputs"]["filename_prefix"] = prefix  # SaveImage
+    return wf
+
+
+def inject_params_v003_ipadapter(workflow: dict, prompt: str, width: int,
+                                 height: int, seed: int, prefix: str,
+                                 ref_filename: str,
+                                 ipadapter_strength: float) -> dict:
+    """Inject parameters into a v003 FLUX.1 Dev + IP-Adapter workflow."""
+    wf = inject_params_v003(workflow, prompt, width, height, seed, prefix)
+    wf["15"]["inputs"]["image"] = ref_filename        # LoadImage
+    wf["17"]["inputs"]["weight"] = ipadapter_strength  # ApplyIPAdapterFlux
+    return wf
+
+
 # ── ComfyUI API ───────────────────────────────────────────────────────────────
+
+def upload_image(base_url: str, image_path: str) -> str:
+    """Upload an image to ComfyUI input directory. Returns the stored filename."""
+    path = Path(image_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Image not found: {image_path}")
+    with open(path, "rb") as f:
+        r = requests.post(
+            f"{base_url}/upload/image",
+            files={"image": (path.name, f, "image/png")},
+            timeout=30,
+        )
+    if r.status_code != 200:
+        raise RuntimeError(f"Failed to upload image: HTTP {r.status_code}")
+    return r.json()["name"]
+
 
 def submit_prompt(base_url: str, workflow: dict) -> str:
     """POST workflow to ComfyUI, return prompt_id."""
@@ -237,6 +295,9 @@ def run_explore(
     lora: Optional[str] = None,
     lora_strength: float = 0.8,
     base_model: bool = False,
+    model: str = "flux2-klein",
+    ipadapter_ref: Optional[str] = None,
+    ipadapter_strength: float = 0.6,
 ) -> dict:
     """Core explore function. Returns results dict."""
 
@@ -246,30 +307,56 @@ def run_explore(
     session_dir = output_dir / session_id
     session_dir.mkdir(parents=True, exist_ok=True)
 
-    # Mode B (LoRA) or Mode A (text-only)
-    mode_b = lora is not None
-    if mode_b:
-        version = "v002_base" if base_model else "v002"
+    # Upload IP-Adapter reference image if provided
+    ref_filename = None
+    if ipadapter_ref:
+        print(f"[explore] Uploading IP-Adapter reference: {ipadapter_ref}")
+        ref_filename = upload_image(base_url, ipadapter_ref)
+        print(f"[explore] Reference uploaded as: {ref_filename}")
+
+    # Select workflow based on model backend
+    if model == "flux1-dev":
+        if ipadapter_ref:
+            version = "v003_ipadapter"
+            mode_label = "C_ipadapter"
+            prefix_tag = "explore_ipa"
+        else:
+            version = "v003"
+            mode_label = "A_text"
+            prefix_tag = "explore"
         template = load_workflow(version)
-        steps = 20 if base_model else 4
-        cfg = 4.0 if base_model else 1.0
-        mode_label = "B_identity"
-        prefix_tag = "explore_b"
+        steps = 20
+        guidance = 3.5
+        model_name = "flux1_dev_12b"
     else:
-        template = load_workflow("v001")
-        steps = 4
-        cfg = 1.0
-        mode_label = "A_text"
-        prefix_tag = "explore"
+        # Legacy FLUX.2 Klein
+        mode_b = lora is not None
+        if mode_b:
+            version = "v002_base" if base_model else "v002"
+            template = load_workflow(version)
+            steps = 20 if base_model else 4
+            guidance = 4.0 if base_model else 1.0
+            mode_label = "B_identity"
+            prefix_tag = "explore_b"
+        else:
+            template = load_workflow("v001")
+            steps = 4
+            guidance = 1.0
+            mode_label = "A_text"
+            prefix_tag = "explore"
+        model_name = "flux2_klein_4b"
 
     print(f"[explore] Session: {session_id}")
-    if mode_b:
+    print(f"[explore] Model: {model_name} ({version})")
+    if ipadapter_ref:
+        print(f"[explore] Mode C: IP-Adapter identity (ref={Path(ipadapter_ref).name}, strength={ipadapter_strength})")
+    elif lora and model == "flux2-klein":
         model_tag = "BASE" if base_model else "distilled"
         print(f"[explore] Mode B: LoRA identity-locked ({lora}, strength={lora_strength}, {model_tag})")
     else:
         print(f"[explore] Mode A: text-only explore")
     print(f"[explore] Prompt: \"{prompt[:80]}{'...' if len(prompt) > 80 else ''}\"")
-    print(f"[explore] Config: {width}x{height} ({fmt}), {steps} steps, CFG {cfg}")
+    print(f"[explore] Config: {width}x{height} ({fmt}), {steps} steps, guidance {guidance}")
     print(f"[explore] Generating {count} images...\n")
 
     results = []
@@ -287,13 +374,21 @@ def run_explore(
         gen_time = None
 
         try:
-            if mode_b:
+            prefix_str = f"{prefix_tag}_{fmt_label}_{seed}"
+            if model == "flux1-dev":
+                if ipadapter_ref:
+                    wf = inject_params_v003_ipadapter(
+                        template, prompt, width, height, seed, prefix_str,
+                        ref_filename, ipadapter_strength)
+                else:
+                    wf = inject_params_v003(
+                        template, prompt, width, height, seed, prefix_str)
+            elif lora is not None:
                 wf = inject_params_v002(template, prompt, width, height, seed,
-                                        f"{prefix_tag}_{fmt_label}_{seed}",
-                                        lora, lora_strength)
+                                        prefix_str, lora, lora_strength)
             else:
                 wf = inject_params(template, prompt, width, height, seed,
-                                   f"{prefix_tag}_{fmt_label}_{seed}")
+                                   prefix_str)
             prompt_id = submit_prompt(base_url, wf)
             wait_for_completion(base_url, prompt_id, timeout=300)
             output_name = get_output_filename(base_url, prompt_id)
@@ -348,12 +443,14 @@ def run_explore(
         "prompt": prompt,
         "format": fmt,
         "size": f"{width}x{height}",
-        "model": "flux2_klein_4b",
-        "model_variant": "base" if base_model else "distilled",
+        "model": model_name,
+        "model_variant": "base" if (model == "flux2-klein" and base_model) else None,
         "steps": steps,
-        "cfg": cfg,
+        "guidance": guidance,
         "lora": lora,
-        "lora_strength": lora_strength if mode_b else None,
+        "lora_strength": lora_strength if lora else None,
+        "ipadapter_ref": ipadapter_ref,
+        "ipadapter_strength": ipadapter_strength if ipadapter_ref else None,
         "results": results,
         "contact_sheet": contact_sheet_name if image_paths else None,
         "succeeded": succeeded,
@@ -441,12 +538,19 @@ Examples:
                         help="Output directory (default: ./explore_output)")
     parser.add_argument("--comfyui-url", type=str, default=None,
                         help="ComfyUI API URL (default: from COMFYUI_URL env)")
+    parser.add_argument("--model", type=str, default="flux2-klein",
+                        choices=["flux2-klein", "flux1-dev"],
+                        help="Model backend (default: flux2-klein)")
     parser.add_argument("--lora", type=str, default=None,
                         help="LoRA filename for Mode B identity lock (e.g. lora_lily_v001.safetensors)")
     parser.add_argument("--lora-strength", type=float, default=0.8,
                         help="LoRA strength 0.0-1.0 (default: 0.8)")
     parser.add_argument("--base-model", action="store_true",
-                        help="Use BASE model (20 steps, CFG 4.0) instead of distilled (4 steps). Better LoRA quality, slower")
+                        help="[flux2-klein only] Use BASE model (20 steps, CFG 4.0) instead of distilled")
+    parser.add_argument("--ipadapter-ref", type=str, default=None,
+                        help="[flux1-dev] Reference face image for IP-Adapter identity guidance")
+    parser.add_argument("--ipadapter-strength", type=float, default=0.6,
+                        help="[flux1-dev] IP-Adapter strength 0.0-1.0 (default: 0.6)")
     parser.add_argument("--cleanup", type=int, metavar="DAYS",
                         help="Remove explore sessions older than N days and exit")
     args = parser.parse_args()
@@ -481,9 +585,14 @@ Examples:
         print(f"  {e}")
         sys.exit(1)
 
-    # Warn if --base-model without --lora
+    # Validate flag combinations
+    if args.base_model and args.model != "flux2-klein":
+        print("Warning: --base-model only applies to flux2-klein, ignoring")
     if args.base_model and not args.lora:
         print("Warning: --base-model has no effect without --lora (Mode A always uses distilled)")
+    if args.ipadapter_ref and args.model != "flux1-dev":
+        print("Warning: --ipadapter-ref requires --model flux1-dev, switching to flux1-dev")
+        args.model = "flux1-dev"
 
     # Default seed
     seed_start = args.seed if args.seed is not None else random.randint(1000, 999999)
@@ -498,6 +607,9 @@ Examples:
         lora=args.lora,
         lora_strength=args.lora_strength,
         base_model=args.base_model,
+        model=args.model,
+        ipadapter_ref=args.ipadapter_ref,
+        ipadapter_strength=args.ipadapter_strength,
     )
 
 
