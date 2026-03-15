@@ -106,10 +106,15 @@ def main():
                 continue
             h = json.loads(urllib.request.urlopen(BASE_URL + "/history/" + pid).read())
             if pid in h:
-                imgs = h[pid]["outputs"]["13"]["images"]
-                fname = imgs[0]["filename"]
-                done.append(pid)
-                print(f"Done {len(done)}/{len(SEEDS)}: {fname}")
+                entry = h[pid]
+                if entry.get("status", {}).get("status_str") == "error":
+                    msgs = entry["status"].get("messages", [])
+                    print(f"ERROR job {pid}: {msgs}")
+                    done.append(pid)
+                elif "13" in entry.get("outputs", {}):
+                    fname = entry["outputs"]["13"]["images"][0]["filename"]
+                    done.append(pid)
+                    print(f"Done {len(done)}/{len(SEEDS)}: {fname}")
 
     print("\nBATCH COMPLETE")
     print(f"Images saved to /workspace/outputs/")
