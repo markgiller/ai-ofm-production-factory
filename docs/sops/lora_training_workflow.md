@@ -17,7 +17,12 @@ These are recurring mistakes from v001-v004 training sessions. Read before every
 3. **SCP does not work with RunPod** — `subsystem request failed on channel 0`. Use `runpodctl send/receive` or `git push/pull`.
 4. **Terminal input limits** — long scripts (>50 lines) cannot be pasted into SSH. Push via git or send via runpodctl instead.
 5. **tmux may not be installed** — `apt-get update && apt-get install -y tmux`.
-6. **g++ may not be installed** — needed for insightface build: `apt-get install -y g++`.
+6. **insightface requires build-essential AND apt-get update first** — `apt-get install -y g++` alone fails because package index is stale. Correct sequence:
+   ```bash
+   echo "nameserver 8.8.8.8" > /etc/resolv.conf
+   apt-get update -q && apt-get install -y build-essential -q
+   pip install insightface onnxruntime-gpu opencv-python-headless -q
+   ```
 
 ### ComfyUI Paths & Restart
 7. **ComfyUI reads LoRAs from `/app/comfyui/models/loras/`** — NOT `/workspace/ComfyUI/models/loras/`. Always copy finished LoRA to `/app/comfyui/models/loras/`.
@@ -37,9 +42,11 @@ curl -s http://localhost:8188/object_info/LoraLoader | python3 -m json.tool | gr
 13. **Checkpoint filenames use dashes and 8 digits** — format is `lora_chara_v00X-step00000480.safetensors` (NOT underscores or fewer digits).
 
 ### Checkpoint Selection
-14. **Early checkpoints often beat late ones** — with small datasets (8-15 images), ~40-60 steps/image is the sweet spot. Late checkpoints overfit and produce WORSE face similarity.
-    - v003 results: step 480 (FaceSim 0.71) >>> step 800 (0.40) >>> step 1200 (0.49) >>> final (0.47)
-    - Always test at least 3 checkpoints before choosing production LoRA.
+14. **Early checkpoints often beat late ones** — sweet spot is ~60 steps/image. Late checkpoints overfit.
+    - v003 (8 imgs): step 480 (FaceSim 0.71) >>> step 800 (0.40) >>> step 1200 (0.49) — 60 steps/img wins
+    - v004 (11 imgs): step 660 (FaceSim 0.704) > step 770 (0.687) > step 550 (0.686) > step 440 (0.663) — 60 steps/img wins again
+    - Formula: `best_step ≈ num_images × 60`
+    - Always test at least 4 checkpoints spanning early/mid/late range.
 
 ### runpodctl
 15. **runpodctl extracts to CURRENT working directory** — files end up where you ran `runpodctl receive`, NOT in `/workspace/`. Always `cd /workspace` first, then check with `find /workspace -name "lora_chara_v00X" -type d`.
@@ -265,19 +272,34 @@ python scripts/run_explore.py \
 
 Test at least 3 checkpoints with ArcFace:
 ```bash
-# Install ArcFace deps if needed (pod DNS fix first)
+# Install ArcFace deps if needed (run on every new pod)
 echo "nameserver 8.8.8.8" > /etc/resolv.conf
-apt-get update && apt-get install -y g++
-pip install insightface onnxruntime-gpu opencv-python-headless
+apt-get update -q && apt-get install -y build-essential -q
+pip install insightface onnxruntime-gpu opencv-python-headless -q
 
-# Run ArcFace on each test session
-python scripts/select_training_candidates.py \
-  --reference /workspace/lora_training/chara_v00X/img/1.png \
-  --input explore_output/SESSION_ID \
-  --top 5
+# Generate 10 images per candidate checkpoint at lora-strength 1.0
+# Note: use --output-dir, NOT --session (doesn't exist)
+export COMFYUI_URL=http://localhost:8188
+PROMPT="portrait photo of chara, young woman, soft brown eyes, natural skin, slight smile, [outfit], [scene], candid lifestyle photo"
+for step in 440 550 660 770; do
+  python scripts/run_explore.py --prompt "$PROMPT" \
+    --lora "lora_chara_v00X-step000${step}.safetensors" \
+    --lora-strength 1.0 --count 10 --format 4:5 \
+    --output-dir explore_output/v00X_step${step}
+done
+
+# Run ArcFace on each session
+for step in 440 550 660 770; do
+  echo "=== step $step ==="
+  python scripts/select_training_candidates.py \
+    --input explore_output/v00X_step${step} \
+    --reference /workspace/lora_training/chara_v00X/img/1.png \
+    --top 10
+done
 ```
 
 Pick the checkpoint with highest average FaceSim. With small datasets, early checkpoints usually win.
+**Use lora-strength 1.0 for checkpoint comparison** — lower values mask differences between checkpoints.
 
 ### Step 8 — Download Best LoRA to Mac
 
@@ -420,4 +442,4 @@ ComfyUI is already running from Docker entrypoint. Just use it: `curl http://loc
 | v001 | 16 | 1450 | final | First training run, VAE conversion discovered |
 | v002 | 10 | 1450 | final | Improved curated dataset post-explore workflow |
 | v003 | 8 | 1200 | step 480 (FaceSim 0.71) | New caption strategy (no face description). Step 480 >>> 1200 |
-| v004 | 11 | 1650 | TBD | 8 original + 3 generated. Testing in progress |
+| v004 | 11 | 1650 | step 660 (FaceSim 0.704) | 8 original + 3 generated. 60 steps/img sweet spot confirmed |
