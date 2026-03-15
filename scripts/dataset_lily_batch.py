@@ -77,7 +77,7 @@ ALL_PROMPTS = HEADSHOTS + LIFESTYLE
 SEEDS = list(range(8000, 8000 + len(ALL_PROMPTS) * 100, 100))
 
 
-def build_workflow(prompt_text, seed):
+def build_workflow(prompt_text, seed, weight=PULID_WEIGHT):
     return {
         "1":  {"class_type": "UNETLoader",           "inputs": {"unet_name": "flux1-dev-fp8.safetensors", "weight_dtype": "default"}},
         "2":  {"class_type": "DualCLIPLoader",        "inputs": {"clip_name1": "t5xxl_fp8_e4m3fn.safetensors", "clip_name2": "clip_l.safetensors", "type": "flux"}},
@@ -91,7 +91,7 @@ def build_workflow(prompt_text, seed):
         "18": {"class_type": "ApplyPulidFlux",        "inputs": {
             "model": ["1", 0], "pulid_flux": ["14", 0], "eva_clip": ["16", 0],
             "face_analysis": ["17", 0], "image": ["15", 0],
-            "weight": PULID_WEIGHT, "start_at": 0.0, "end_at": 1.0,
+            "weight": weight, "start_at": 0.0, "end_at": 1.0,
         }},
         "6":  {"class_type": "BasicGuider",           "inputs": {"model": ["18", 0], "conditioning": ["5", 0]}},
         "7":  {"class_type": "EmptyLatentImage",      "inputs": {"width": 832, "height": 1024, "batch_size": 1}},
@@ -104,9 +104,9 @@ def build_workflow(prompt_text, seed):
     }
 
 
-def queue_job(workflow):
+def queue_job(workflow, api_url=BASE_URL):
     data = json.dumps({"prompt": workflow}).encode()
-    req = urllib.request.Request(BASE_URL + "/prompt", data=data, headers={"Content-Type": "application/json"})
+    req = urllib.request.Request(api_url + "/prompt", data=data, headers={"Content-Type": "application/json"})
     try:
         resp = json.loads(urllib.request.urlopen(req).read())
     except urllib.error.HTTPError as e:
@@ -129,9 +129,8 @@ def main():
                         help=f"ComfyUI API URL (default: {BASE_URL})")
     args = parser.parse_args()
 
-    global BASE_URL, PULID_WEIGHT
-    BASE_URL = args.comfyui_url
-    PULID_WEIGHT = args.weight
+    api_url = args.comfyui_url
+    pulid_weight = args.weight
 
     # Select prompts
     if args.headshots_only:
@@ -158,7 +157,7 @@ def main():
         shutil.copy(ref_src, ref_dst)
         print(f"[dataset] Copied reference to {ref_dst}")
 
-    print(f"[dataset] PuLID weight: {PULID_WEIGHT}")
+    print(f"[dataset] PuLID weight: {pulid_weight}")
     print(f"[dataset] Reference: {REF_IMAGE}")
     print(f"[dataset] Resolution: 832x1024 (close to 4:5)")
     print()
@@ -166,8 +165,8 @@ def main():
     # Queue all jobs
     jobs = []
     for i, (prompt, seed) in enumerate(zip(prompts, seeds)):
-        wf = build_workflow(prompt, seed)
-        pid = queue_job(wf)
+        wf = build_workflow(prompt, seed, weight=pulid_weight)
+        pid = queue_job(wf, api_url=api_url)
         jobs.append(pid)
         shot_type = "headshot" if i < len(HEADSHOTS) and not args.lifestyle_only else "lifestyle"
         print(f"  Queued {i+1}/{len(prompts)}: seed={seed} [{shot_type}]")
@@ -182,7 +181,7 @@ def main():
         for pid in jobs:
             if pid in done:
                 continue
-            h = json.loads(urllib.request.urlopen(BASE_URL + "/history/" + pid).read())
+            h = json.loads(urllib.request.urlopen(api_url + "/history/" + pid).read())
             if pid in h:
                 entry = h[pid]
                 if entry.get("status", {}).get("status_str") == "error":
