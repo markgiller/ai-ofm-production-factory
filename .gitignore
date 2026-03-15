@@ -27,3 +27,4 @@ local_workspace/
 # ── Data / outputs (never commit generated assets) ───────────────────────────
 data/
 exports/
+explore_output/

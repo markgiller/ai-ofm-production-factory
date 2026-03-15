@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh -T:*)",
+      "Bash(python3 scripts/batch_everyday_v002.py --comfyui-url https://xve3vkwv9je132-8188.proxy.runpod.net --count-per-prompt 4)",
+      "Bash(curl -s --max-time 10 https://xve3vkwv9je132-8188.proxy.runpod.net/system_stats)",
+      "Bash(find explore_output/batch_everyday_v002/ -name *.png)",
+      "Bash(ls -d explore_output/batch_everyday_v002/2026*/)",
+      "Bash(find explore_output/batch_everyday_v002/ -name *.png ! -name contact_sheet*)",
+      "Bash(ls -dt explore_output/batch_everyday_v002/2026*/)"
+    ],
+    "additionalDirectories": [
+      "/Users/markgiller/Desktop/lora_chara_v002",
+      "/Users/markgiller/Desktop/Projects/ai-ofm-production-factory/explore_output"
+    ]
+  }
+}
