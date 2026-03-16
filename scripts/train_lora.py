@@ -140,7 +140,7 @@ config:
       network:
         type: "lora"
         linear: {rank}
-        linear_alpha: {rank // 2}
+        linear_alpha: {rank}
         conv: {max(8, rank // 2)}
         conv_alpha: {max(4, rank // 4)}
       save:
@@ -163,7 +163,7 @@ config:
       model:
         name_or_path: "{model_path}"
         quantize: true
-        low_vram: false
+        low_vram: true
 """
 
     config_path = output_dir / "config.yaml"
@@ -229,7 +229,7 @@ def cmd_prepare(args):
     high_likeness = len(image_paths) <= 3
 
     # Model path
-    model_path = args.model_path or "black-forest-labs/FLUX.2-klein-base-4B"
+    model_path = args.model_path or "black-forest-labs/FLUX.1-dev"
     rank = args.rank or DEFAULT_RANK
 
     # Write config
@@ -340,7 +340,7 @@ Training tips:
     prep.add_argument("--output", type=str, default=None,
                       help="Output directory (default: /workspace/lora_training/<character>_v001/)")
     prep.add_argument("--model-path", type=str, default=None,
-                      help="Model path/HF ID (default: black-forest-labs/FLUX.2-klein-base-4B)")
+                      help="Model path/HF ID (default: black-forest-labs/FLUX.1-dev)")
     prep.add_argument("--rank", type=int, default=None,
                       help=f"LoRA rank (default: {DEFAULT_RANK})")
 

@@ -6,7 +6,7 @@ AI OFM PRODUCTION PIPELINE v
 storage, workflow library, SOP оператора, review gates и rollout-
 план.
 Техническое ядро
-Runpod/Vast 4090 → Dockerized ComfyUI → FLUX.2 [klein] 4B → LoRA
+Runpod/Vast 4090 → Dockerized ComfyUI → FLUX.1 Dev 12B (fp8) → LoRA
 + refs + ControlNet + repair + upscale → Wan 2.2 → interpolation + video
 upscale → orchestrator → S3 + Postgres + manifests.
 North star
@@ -51,7 +51,7 @@ shot templates, которые выглядят как повторяемый ф
 Compute 1× RTX 4090 24 GB (облако) Стартовая production GPU Сначала аренда, не покупка железа.
 Runtime SelfDocker-hosted ComfyUI в Inference engine + queueable workflows Headless API format JSON, staging и prod раздельно.
 Image
-backbone FLUX.2 [klein] 4B^
+backbone FLUX.1 Dev 12B (fp8)
 Explore, hero, repair,
 editing
 Основа для T2I/I2I и
@@ -75,7 +75,7 @@ Runpod/Vast 4090
 ↓
 Dockerized ComfyUI (headless)
 ↓
-FLUX.2 [klein] 4B + LoRA + refs + ControlNet + repair
+FLUX.1 Dev 12B (fp8) + LoRA + refs + repair
 ↓
 Wan 2.2 TI2V-5B
 ↓
@@ -171,7 +171,7 @@ captions/
 Naming discipline обязательна. Никаких «workflow_final_real_new2».
 
 Сущность Пример naming
-Workflow hero_flux2k4b_chara_editorial_v003.json
+Workflow hero_flux1dev_chara_editorial_v003.json
 Сущность Пример naming
 Job job_2026_03_09_chara_sfw_hero_00421
 
@@ -189,7 +189,7 @@ versioned JSON и проходить через change log.
 Workflow A — IMG_explore_v
 Назначение: Быстро получить веер сцен, композиций и visual hooks при низкой цене ошибки.
 Inputs: brief, lane, character pack, style pack, aspect ratio, seed range, explore prompt block
-Проход: FLUX.2 [klein] 4B, fast preview settings, 10–50 вариаций на один brief, сохранение seed и shortlist
+Проход: FLUX.1 Dev 12B (fp8), fast preview settings, 10–50 вариаций на один brief, сохранение seed и shortlist
 contact sheet.
 Outputs: preview batch, contact sheet, shortlist JSON, seeds для лучших кадров.
 Workflow B — IMG_hero_v

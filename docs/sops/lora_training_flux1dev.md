@@ -43,8 +43,8 @@ We originally planned to use musubi-tuner (used for v001-v004 on Klein). Investi
 - ai-toolkit handles fp8 quantization, latent caching, EMA, sampling all in one config
 - Official example configs exist for 24GB GPUs: `config/examples/train_lora_flux_24gb.yaml`
 
-**Note:** musubi-tuner was excellent for FLUX.2 Klein. If we ever train on Klein again, use musubi-tuner.
-See `docs/sops/lora_training_workflow.md` for the Klein SOP.
+**Note:** musubi-tuner was excellent for FLUX.2 Klein but has no FLUX.1 Dev scripts.
+Klein SOP was archived (stack migrated to FLUX.1 Dev on 2026-03-15).
 
 ---
 

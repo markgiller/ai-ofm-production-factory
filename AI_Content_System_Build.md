@@ -20,7 +20,7 @@ Runtime-слой
 Готово, когда: workflow запускается JSON’ом, а не руками.
 Model layer
 Что это: набор базовых моделей и finishing-инструментов.
-Что входит: FLUX.2 [klein] 4B для image-side, Wan 2.2 для image-to-video,
+Что входит: FLUX.1 Dev 12B (fp8) для image-side, Wan 2.2 для image-to-video,
 upscale/interpolation/encode для финала.
 Зачем: это мотор генерации still + motion.
 Готово, когда: есть repeatable output для explore, hero, repair, video, finish.

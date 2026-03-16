@@ -31,11 +31,9 @@ Infrastructure foundation. "Правильный пустой каркас."
 - verify_postgres.py: 9/9 checks (connection, schema, 5 tables, round-trip INSERT/SELECT/DELETE)
 - verify_comfyui.py: 5/5 checks (system_stats, POST /prompt, poll /queue, GET /history, output file)
 
-### Known Issues Resolved in Phase 2
-- ~~FLUX text encoder "T5-XXL 4096-dim mismatch"~~ — WRONG diagnosis. FLUX.2-klein uses Qwen3-4B (not T5-XXL). 7680-dim = 3 Qwen3 layers × 2560.
-- ~~FLUX VAE "128 scale factors"~~ — NOT a bug. 128 is normal for FLUX.2. Problem was loading FLUX.2 VAE in FLUX.1 pipeline.
-- Root cause: needed 3 split files from `Comfy-Org/flux2-klein` in `diffusion_models/`, `text_encoders/`, `vae/` directories (not in `checkpoints/`).
+### Notes
 - Phase 1 Runtime gate passed with EmptyImage workflow (model-free API proof).
+- Image backbone migrated from FLUX.2 Klein 4B → FLUX.1 Dev 12B (fp8) on 2026-03-15 due to FaceSim plateau and lack of IP-Adapter support. See `docs/sops/lora_training_flux1dev.md` for full rationale.
 
 ---
 
@@ -51,10 +49,10 @@ This phase gives the factory its creative identity and repeatable production cap
 | House aesthetic | Style LoRA, skin finish, lens behavior, light logic, color mood, editorial polish | разные сцены ощущаются как один бренд | TODO |
 | Shot grammar | 8 shot types: hero close-up, medium conversational, mirror, entrance/walking, seated idle, over-shoulder, reaction, CTA end frame | у каждого shot type есть prompt block, refs, preferred ratios, failure modes, repair rules и примеры winners | TODO |
 | Workflow library | 5 versioned ComfyUI JSON graphs (explore/hero/repair/video/finish) | workflow versionируется, имеет changelog и snapshot при запуске job | TODO |
-| FLUX integration | Download split files from Comfy-Org/flux2-klein, run verify_comfyui.py --flux | FLUX.2-klein генерирует стабильный output через API | DONE |
+| FLUX integration | FLUX.1 Dev 12B (fp8) loaded, LoRA training via ai-toolkit | FLUX.1 Dev генерирует стабильный output через API | DONE |
 
 ### Model layer (prerequisite for workflows)
-- Image backbone: FLUX.2 [klein] 4B — explore, hero, repair, editing
+- Image backbone: FLUX.1 Dev 12B (fp8) — explore, hero, repair, editing
 - Video backbone: Wan 2.2 TI2V-5B — source clip 720p/24fps
 - Finishing: upscale + interpolation + encode — every clip passes through finish stage
 

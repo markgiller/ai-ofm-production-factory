@@ -29,7 +29,7 @@ The system solves four problems simultaneously:
 |-------|------|------|
 | Compute | Runpod RTX 4090 24GB (cloud rental) | Starting production GPU |
 | Runtime | Dockerized ComfyUI (headless API) | Inference engine, staging + prod separate |
-| Image backbone | FLUX.2 [klein] 4B | T2I/I2I via LoRA + refs + ControlNet |
+| Image backbone | FLUX.1 Dev 12B (fp8) | T2I/I2I via LoRA + refs |
 | Video backbone | Wan 2.2 TI2V-5B | Image-to-video, 720p/24fps source clips |
 | Finishing | Upscale + interpolation + encode | Every clip goes through finish stage |
 | Storage | Backblaze B2 (S3-compatible) | Raw/final separated, full lineage |

@@ -46,7 +46,7 @@ config:
         - folder_path: "/workspace/lora_training/lily_v001/img"
           caption_ext: "txt"
           caption_dropout_rate: 0.05    # 5% dropout — prevents trigger overfitting
-          cache_latents_to_disk: true   # pre-encode images, unload VAE, save VRAM
+          # NOTE: cache_latents_to_disk removed — conflicts with caption_dropout_rate > 0
           resolution: [768, 1024]       # multi-res (no 512 — too low for face detail)
           default_caption: "lily"
 

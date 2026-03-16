@@ -272,7 +272,7 @@ Every job produces a manifest stored in S3 and referenced in Postgres:
   "workflow_id": "IMG_hero_v001",
   "workflow_version": "v001",
   "workflow_hash": "sha256:abc123...",
-  "model_version": "flux2_klein_4b",
+  "model_version": "flux1_dev_12b",
   "model_hash": "sha256:def456...",
   "lora_versions": {
     "character": "lora_chara_v003",

@@ -27,7 +27,7 @@ Usage:
 
 Requires:
     - ComfyUI running (set COMFYUI_URL env var or use --comfyui-url)
-    - Model files on the volume (see docs/sops/lora_training_workflow.md)
+    - Model files on the volume (see docs/sops/lora_training_flux1dev.md)
     - requests, Pillow
 """
 
@@ -69,11 +69,13 @@ FORMATS = {
 }
 
 _WORKFLOWS_DIR = Path(__file__).resolve().parent.parent / "workflows" / "explore"
-WORKFLOW_TEMPLATE = _WORKFLOWS_DIR / "IMG_explore_v001.json"
-WORKFLOW_TEMPLATE_V002 = _WORKFLOWS_DIR / "IMG_explore_v002.json"
-WORKFLOW_TEMPLATE_V002_BASE = _WORKFLOWS_DIR / "IMG_explore_v002_base.json"
+# Active workflow (FLUX.1 Dev)
 WORKFLOW_TEMPLATE_V003 = _WORKFLOWS_DIR / "IMG_explore_v003.json"
-WORKFLOW_TEMPLATE_V003_IPA = _WORKFLOWS_DIR / "IMG_explore_v003_ipadapter.json"
+# Legacy workflows (removed — FLUX.2 Klein era)
+WORKFLOW_TEMPLATE = _WORKFLOWS_DIR / "IMG_explore_v001.json"          # deleted
+WORKFLOW_TEMPLATE_V002 = _WORKFLOWS_DIR / "IMG_explore_v002.json"     # deleted
+WORKFLOW_TEMPLATE_V002_BASE = _WORKFLOWS_DIR / "IMG_explore_v002_base.json"  # deleted
+WORKFLOW_TEMPLATE_V003_IPA = _WORKFLOWS_DIR / "IMG_explore_v003_ipadapter.json"  # deleted
 
 
 # ── Workflow injection ────────────────────────────────────────────────────────
@@ -538,9 +540,9 @@ Examples:
                         help="Output directory (default: ./explore_output)")
     parser.add_argument("--comfyui-url", type=str, default=None,
                         help="ComfyUI API URL (default: from COMFYUI_URL env)")
-    parser.add_argument("--model", type=str, default="flux2-klein",
+    parser.add_argument("--model", type=str, default="flux1-dev",
                         choices=["flux2-klein", "flux1-dev"],
-                        help="Model backend (default: flux2-klein)")
+                        help="Model backend (default: flux1-dev)")
     parser.add_argument("--lora", type=str, default=None,
                         help="LoRA filename for Mode B identity lock (e.g. lora_lily_v001.safetensors)")
     parser.add_argument("--lora-strength", type=float, default=0.8,

@@ -5,8 +5,7 @@ Prepare lily_v001 dataset for LoRA training on FLUX.1 Dev.
 What this script does:
 1. Writes individual captions (.txt) for each of the 36 images
 2. Converts JPG → PNG and resizes (longest side = 1024)
-3. Creates dataset.toml for musubi-tuner
-4. Validates the dataset
+3. Validates the dataset
 
 Usage (on Mac, before uploading to pod):
     python scripts/prepare_lily_v001.py
@@ -89,8 +88,9 @@ def resize_image(img: Image.Image, max_res: int) -> Image.Image:
 
 
 def create_dataset_toml(img_dir: Path, output_path: Path):
-    """Create musubi-tuner dataset.toml for FLUX.1 Dev training."""
-    # Pod path — will be adjusted when uploaded
+    """Create dataset.toml (legacy, not used by ai-toolkit — kept for reference)."""
+    # ai-toolkit uses YAML config with inline dataset definition
+    # This function is kept for backwards compatibility but is not called by default
     pod_img_dir = "/workspace/lora_training/lily_v001/img"
     content = f"""[general]
 resolution = [1024, 1024]

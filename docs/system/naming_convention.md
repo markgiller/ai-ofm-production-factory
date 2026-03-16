@@ -112,9 +112,9 @@ Workflows must follow this pattern:
 Examples:
 
 ```
-explore_flux2k4b_generic_editorial_v001.json
-hero_flux2k4b_chara_editorial_v003.json
-repair_flux2k4b_chara_editorial_v002.json
+explore_flux1dev_generic_editorial_v001.json
+hero_flux1dev_chara_editorial_v003.json
+repair_flux1dev_chara_editorial_v002.json
 video_wan22_chara_editorial_v001.json
 finish_video_master_v001.json
 ```

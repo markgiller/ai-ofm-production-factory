@@ -4,7 +4,7 @@
 # End-to-end smoke test for ComfyUI headless API.
 # Two modes:
 #   --model-free  (default) EmptyImage → SaveImage. Proves API works, no models needed.
-#   --flux        FLUX.2-klein full pipeline. Proves image generation works end-to-end.
+#   --flux        FLUX.2-klein full pipeline (LEGACY — kept for backwards compat, not used with FLUX.1 Dev).
 #
 # Checks:
 #   1. /system_stats — ComfyUI is up, GPU visible
@@ -18,7 +18,7 @@
 # Usage:
 #   export COMFYUI_URL=https://<pod-id>-8188.proxy.runpod.net
 #   python3 scripts/verify_comfyui.py              # model-free API test
-#   python3 scripts/verify_comfyui.py --flux        # FLUX.2 generation test
+#   python3 scripts/verify_comfyui.py --flux        # FLUX.2 generation test (legacy)
 #
 # Options:
 #   --flux         use FLUX.2-klein workflow (requires models on volume)
