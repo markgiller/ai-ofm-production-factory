@@ -4,6 +4,13 @@
 # ai-toolkit (ostris) — RTX 4090 24GB
 #
 # Character: Lily | Trigger: "lily" | Dataset: 36 images
+#
+# Research-backed parameters:
+#   - Rank 16 + Alpha 16 (1:1) — sufficient for character identity, less overfitting
+#   - LR 1e-4 cosine — standard for FLUX character LoRA
+#   - low_vram: true — quantize on CPU to avoid OOM on 24GB
+#   - gradient_checkpointing — essential for 24GB training
+#   - EMA smoothing — stabilizes training on small datasets
 # ─────────────────────────────────────────────────────────────────────────────
 
 job: extension
@@ -18,39 +25,61 @@ config:
       # ── Model ─────────────────────────────────────────────────────────────
       model:
         name_or_path: "black-forest-labs/FLUX.1-dev"
-        quantize: true        # fp8 quantization — fits 24GB VRAM
+        is_flux: true
+        quantize: true           # fp8 quantization
+        low_vram: true           # quantize on CPU, then move ~12GB to GPU
 
       # ── LoRA Network ──────────────────────────────────────────────────────
       network:
         type: "lora"
-        linear: 32             # rank 32 — optimal for 12B model identity lock
-        linear_alpha: 16       # alpha = rank/2 (standard)
-
-      # ── Training ──────────────────────────────────────────────────────────
-      train:
-        batch_size: 1
-        steps: 2500            # ~70 steps/image for 36 images
-        gradient_accumulation_steps: 1
-        lr: 8e-5               # lower end for stability with 36-image dataset
-        optimizer: "adamw8bit"
-        lr_scheduler: "constant"
-        max_denoising_steps: 50
-        content_or_style: "balanced"
-        skip_first_sample: true
-        disable_sampling: true  # skip sample generation (faster training)
+        linear: 16               # rank 16 — optimal for character identity on FLUX
+        linear_alpha: 16         # alpha = rank (1:1 ratio, effective LR not scaled)
 
       # ── Save ──────────────────────────────────────────────────────────────
       save:
-        dtype: "bf16"
-        save_every: 150        # ~17 checkpoints for sweet spot hunting
-        max_step_saves_to_keep: 20
+        dtype: float16
+        save_every: 250          # 10 checkpoints over 2500 steps
+        max_step_saves_to_keep: 10
 
       # ── Dataset ───────────────────────────────────────────────────────────
       datasets:
         - folder_path: "/workspace/lora_training/lily_v001/img"
           caption_ext: "txt"
           caption_dropout_rate: 0.05    # 5% dropout — prevents trigger overfitting
-          resolution: 1024
+          cache_latents_to_disk: true   # pre-encode images, unload VAE, save VRAM
+          resolution: [768, 1024]       # multi-res (no 512 — too low for face detail)
           default_caption: "lily"
-          random_scale: false
-          bucket_tolerance: 64
+
+      # ── Training ──────────────────────────────────────────────────────────
+      train:
+        batch_size: 1
+        steps: 2500              # ~70 steps/image for 36 images
+        gradient_accumulation_steps: 1
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true    # essential for 24GB VRAM
+        noise_scheduler: "flowmatch"    # required for FLUX architecture
+        optimizer: "adamw8bit"
+        lr: 1e-4                 # standard for FLUX character LoRA
+        lr_scheduler: "cosine"   # prevents overfitting in later steps
+        content_or_style: "balanced"
+        dtype: bf16
+        ema_config:
+          use_ema: true
+          ema_decay: 0.99
+
+      # ── Sampling ─────────────────────────────────────────────────────────
+      sample:
+        sampler: "flowmatch"
+        sample_every: 250
+        width: 1024
+        height: 1024
+        prompts:
+          - "lily, a young woman wearing a grey crewneck t-shirt, head and shoulders portrait, neutral expression, white background, studio lighting"
+          - "lily, a young woman wearing a denim jacket, standing on a city sidewalk, golden hour sunlight, slight smile"
+          - "lily, a young woman, close-up headshot, bare shoulders, white background, soft natural lighting"
+        neg: ""                  # not used on FLUX, but tokenizer needs a string
+        seed: 42
+        walk_seed: true
+        guidance_scale: 4
+        sample_steps: 20
