@@ -7,7 +7,13 @@
       "Bash(find explore_output/batch_everyday_v002/ -name *.png)",
       "Bash(ls -d explore_output/batch_everyday_v002/2026*/)",
       "Bash(find explore_output/batch_everyday_v002/ -name *.png ! -name contact_sheet*)",
-      "Bash(ls -dt explore_output/batch_everyday_v002/2026*/)"
+      "Bash(ls -dt explore_output/batch_everyday_v002/2026*/)",
+      "Bash(curl -s https://raw.githubusercontent.com/ostris/ai-toolkit/main/config/examples/train_lora_flux_schnell_24gb.yaml)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/ostris/ai-toolkit/main/config/examples/train_lora_flux_24gb.yaml\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/ostris/ai-toolkit/main/toolkit/stable_diffusion_model.py\")",
+      "Bash(curl -s \"https://api.github.com/repos/ostris/ai-toolkit/contents/config/examples\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/ostris/ai-toolkit/main/config/examples/train_lora_flux_kontext_24gb.yaml\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/ostris/ai-toolkit/main/config/examples/train_lora_wan22_14b_24gb.yaml\")"
     ],
     "additionalDirectories": [
       "/Users/markgiller/Desktop/lora_chara_v002",
