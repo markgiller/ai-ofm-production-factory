@@ -1,0 +1,1197 @@
+{
+  "id": "80767774-d39b-4f73-a75a-3c1327f92316",
+  "revision": 0,
+  "last_node_id": 107,
+  "last_link_id": 227,
+  "nodes": [
+    {
+      "id": 102,
+      "type": "Reroute",
+      "pos": [
+        2720,
+        -200
+      ],
+      "size": [
+        140.8000030517578,
+        26
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 214
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            215
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false,
+        "widget_ue_connectable": {}
+      }
+    },
+    {
+      "id": 103,
+      "type": "Reroute",
+      "pos": [
+        2910,
+        -200
+      ],
+      "size": [
+        140.8000030517578,
+        26
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 215
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            216
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false,
+        "widget_ue_connectable": {}
+      }
+    },
+    {
+      "id": 105,
+      "type": "Reroute",
+      "pos": [
+        2910,
+        -160
+      ],
+      "size": [
+        140.8000030517578,
+        26
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 218
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            220
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false,
+        "widget_ue_connectable": {}
+      }
+    },
+    {
+      "id": 85,
+      "type": "ClownsharKSampler_Beta",
+      "pos": [
+        3150,
+        -220
+      ],
+      "size": [
+        337.16485595703125,
+        934.886474609375
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "shape": 7,
+          "type": "MODEL",
+          "link": 209
+        },
+        {
+          "name": "positive",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 216
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 220
+        },
+        {
+          "name": "latent_image",
+          "shape": 7,
+          "type": "LATENT",
+          "link": 196
+        },
+        {
+          "name": "sigmas",
+          "shape": 7,
+          "type": "SIGMAS",
+          "link": null
+        },
+        {
+          "name": "guides",
+          "shape": 7,
+          "type": "GUIDES",
+          "link": null
+        },
+        {
+          "name": "options",
+          "shape": 7,
+          "type": "OPTIONS",
+          "link": null
+        },
+        {
+          "name": "options 2",
+          "type": "OPTIONS",
+          "link": 190
+        },
+        {
+          "name": "options 3",
+          "type": "OPTIONS",
+          "link": 212
+        },
+        {
+          "name": "options 4",
+          "type": "OPTIONS",
+          "link": null
+        },
+        {
+          "name": "options 5",
+          "type": "OPTIONS",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "slot_index": 0,
+          "links": []
+        },
+        {
+          "name": "denoised",
+          "type": "LATENT",
+          "links": [
+            197
+          ]
+        },
+        {
+          "name": "options",
+          "type": "OPTIONS",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "RES4LYF",
+        "ver": "ecc408b12ad98492062eeb8b63d2b73b62a057d3",
+        "Node name for S&R": "ClownsharKSampler_Beta",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        0,
+        "exponential/res_2s",
+        "bong_tangent",
+        24,
+        -1,
+        1,
+        16,
+        77,
+        "fixed",
+        "standard",
+        true
+      ]
+    },
+    {
+      "id": 69,
+      "type": "EmptySD3LatentImage",
+      "pos": [
+        2720,
+        -90
+      ],
+      "size": [
+        330,
+        106
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            196
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "EmptySD3LatentImage",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        1152,
+        1536,
+        1
+      ]
+    },
+    {
+      "id": 101,
+      "type": "ClownOptions_SDE_Beta",
+      "pos": [
+        2720,
+        330
+      ],
+      "size": [
+        330,
+        266
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "etas",
+          "shape": 7,
+          "type": "SIGMAS",
+          "link": null
+        },
+        {
+          "name": "etas_substep",
+          "shape": 7,
+          "type": "SIGMAS",
+          "link": null
+        },
+        {
+          "name": "options",
+          "shape": 7,
+          "type": "OPTIONS",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "options",
+          "type": "OPTIONS",
+          "links": [
+            212
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "RES4LYF",
+        "ver": "2f84be17fc8d0096ea6b06e29a3133d57c3f65ca",
+        "Node name for S&R": "ClownOptions_SDE_Beta",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "brownian",
+        "uniform",
+        "hard",
+        "hard",
+        0.2,
+        0.2,
+        731341,
+        "fixed"
+      ]
+    },
+    {
+      "id": 104,
+      "type": "Reroute",
+      "pos": [
+        2720,
+        -160
+      ],
+      "size": [
+        140.8000030517578,
+        26
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 219
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            218
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false,
+        "widget_ue_connectable": {}
+      }
+    },
+    {
+      "id": 74,
+      "type": "CLIPTextEncode",
+      "pos": [
+        2130,
+        -290
+      ],
+      "size": [
+        420,
+        290
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 185
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            214
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "CLIPTextEncode",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "ultra-sharp background, crystal clear depth, hyperrealistic scenery, razor sharp focus.\n\nA cinematic photograph of a bird perched on a tree branch, holding cherries in its beak and feet. The bird has a green head, brown wings, and a long orange beak. It is standing on a branch with green leaves, and there are red cherries hanging from the branch. The bird is holding two cherries in its feet, which are also colored red. The background of the image is a blue sky with white clouds. The overall atmosphere of the image is whimsical and playful, with the bird's pose and the presence of cherries creating a sense of joy and abundance."
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 79,
+      "type": "VAEDecode",
+      "pos": [
+        3350,
+        -320
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 197
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 224
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            181
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "VAEDecode",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 81,
+      "type": "SaveImage",
+      "pos": [
+        3580,
+        -320
+      ],
+      "size": [
+        890,
+        1030
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 181
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "SaveImage",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "2025-08/ComfyUI_FluxChromaHD"
+      ]
+    },
+    {
+      "id": 89,
+      "type": "Skimmed CFG - linear interpolation",
+      "pos": [
+        2230,
+        -420
+      ],
+      "size": [
+        318.5337829589844,
+        58
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 227
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            208
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "skimmed_cfg",
+        "ver": "2712803a8b721665d43d5aeb4430e5ac0e931091",
+        "Node name for S&R": "Skimmed CFG - linear interpolation",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        3.5
+      ]
+    },
+    {
+      "id": 97,
+      "type": "TorchCompileModelFluxAdvancedV2",
+      "pos": [
+        2720,
+        -420
+      ],
+      "size": [
+        330,
+        202
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 208
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            209
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.1.3",
+        "Node name for S&R": "TorchCompileModelFluxAdvancedV2",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "inductor",
+        false,
+        "default",
+        true,
+        true,
+        false,
+        64
+      ]
+    },
+    {
+      "id": 86,
+      "type": "ClownOptions_DetailBoost_Beta",
+      "pos": [
+        2720,
+        60
+      ],
+      "size": [
+        330,
+        218
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "weights",
+          "shape": 7,
+          "type": "SIGMAS",
+          "link": null
+        },
+        {
+          "name": "etas",
+          "shape": 7,
+          "type": "SIGMAS",
+          "link": null
+        },
+        {
+          "name": "options",
+          "shape": 7,
+          "type": "OPTIONS",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "options",
+          "type": "OPTIONS",
+          "links": [
+            190
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "RES4LYF",
+        "ver": "81fe5f4d02c1a86d4cbb1ef92c652055f574810a",
+        "Node name for S&R": "ClownOptions_DetailBoost_Beta",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        0.58,
+        "model",
+        "hard",
+        0.5,
+        6,
+        20
+      ]
+    },
+    {
+      "id": 93,
+      "type": "Power Lora Loader (rgthree)",
+      "pos": [
+        1160,
+        -70
+      ],
+      "size": [
+        420,
+        214
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "dir": 3,
+          "name": "model",
+          "type": "MODEL",
+          "link": 225
+        },
+        {
+          "dir": 3,
+          "name": "clip",
+          "type": "CLIP",
+          "link": 226
+        }
+      ],
+      "outputs": [
+        {
+          "dir": 4,
+          "name": "MODEL",
+          "shape": 3,
+          "type": "MODEL",
+          "links": [
+            227
+          ]
+        },
+        {
+          "dir": 4,
+          "name": "CLIP",
+          "shape": 3,
+          "type": "CLIP",
+          "links": [
+            206
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "rgthree-comfy",
+        "ver": "1.0.2507112302",
+        "Show Strengths": "Single Strength",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        {},
+        {
+          "type": "PowerLoraLoaderHeaderWidget"
+        },
+        {
+          "on": false,
+          "lora": "Flux\\Skintastic_Flux_v1.safetensors",
+          "strength": 0.7,
+          "strengthTwo": null
+        },
+        {
+          "on": true,
+          "lora": "Flux\\Background-Flux-V01_epoch_15.safetensors",
+          "strength": 0.4,
+          "strengthTwo": null
+        },
+        {
+          "on": true,
+          "lora": "Flux\\GrainScape_UltraReal_v2.safetensors",
+          "strength": 0.15,
+          "strengthTwo": null
+        },
+        {
+          "on": true,
+          "lora": "Flux\\42lux-Schwarzwald-Klinik-v15-bf16.safetensors",
+          "strength": 0.3,
+          "strengthTwo": null
+        },
+        {},
+        ""
+      ]
+    },
+    {
+      "id": 78,
+      "type": "CLIPLoader",
+      "pos": [
+        1160,
+        -220
+      ],
+      "size": [
+        420,
+        110
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            226
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "CLIPLoader",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "t5xxl_fp16.safetensors",
+        "chroma",
+        "default"
+      ]
+    },
+    {
+      "id": 76,
+      "type": "UNETLoader",
+      "pos": [
+        1160,
+        -340
+      ],
+      "size": [
+        420,
+        82
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            225
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "UNETLoader",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "Chroma\\Chroma1-HD.safetensors",
+        "default"
+      ]
+    },
+    {
+      "id": 80,
+      "type": "VAELoader",
+      "pos": [
+        1160,
+        -440
+      ],
+      "size": [
+        420,
+        60
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            221
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "VAELoader",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "FLUX.1-dev_VAE.safetensors"
+      ]
+    },
+    {
+      "id": 106,
+      "type": "Anything Everywhere",
+      "pos": [
+        1640,
+        -440
+      ],
+      "size": [
+        172.18905639648438,
+        26
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "color_on": "#FF6E6E",
+          "label": "VAE",
+          "name": "anything",
+          "shape": 7,
+          "type": "*",
+          "link": 221
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "cg-use-everywhere",
+        "ver": "6.2.2",
+        "Node name for S&R": "Anything Everywhere",
+        "group_restricted": 0,
+        "color_restricted": 0,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 75,
+      "type": "CLIPTextEncode",
+      "pos": [
+        2130,
+        50
+      ],
+      "size": [
+        420,
+        180
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 186
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            219
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.27",
+        "Node name for S&R": "CLIPTextEncode",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "low quality, worst quality, ugly, low-res, lowres, low resolution, unfinished, anime, manga, watercolor, sketch, out of focus, deformed, disfigured, extra limbs, amputation, blurry, smudged, restricted palette, flat colors, pixelated, jpeg compression, jpeg artifacts, jpg compression, jpg artifacts, lack of detail, cg, cgi, 3d render"
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 82,
+      "type": "T5TokenizerOptions",
+      "pos": [
+        1790,
+        -50
+      ],
+      "size": [
+        210,
+        82
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 206
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            185,
+            186
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.30",
+        "Node name for S&R": "T5TokenizerOptions",
+        "enableTabs": false,
+        "tabWidth": 65,
+        "tabXOffset": 10,
+        "hasSecondTab": false,
+        "secondTabText": "Send Back",
+        "secondTabOffset": 80,
+        "secondTabWidth": 65,
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        1,
+        0
+      ]
+    }
+  ],
+  "links": [
+    [
+      181,
+      79,
+      0,
+      81,
+      0,
+      "IMAGE"
+    ],
+    [
+      185,
+      82,
+      0,
+      74,
+      0,
+      "CLIP"
+    ],
+    [
+      186,
+      82,
+      0,
+      75,
+      0,
+      "CLIP"
+    ],
+    [
+      190,
+      86,
+      0,
+      85,
+      7,
+      "OPTIONS"
+    ],
+    [
+      196,
+      69,
+      0,
+      85,
+      3,
+      "LATENT"
+    ],
+    [
+      197,
+      85,
+      1,
+      79,
+      0,
+      "LATENT"
+    ],
+    [
+      206,
+      93,
+      1,
+      82,
+      0,
+      "CLIP"
+    ],
+    [
+      208,
+      89,
+      0,
+      97,
+      0,
+      "MODEL"
+    ],
+    [
+      209,
+      97,
+      0,
+      85,
+      0,
+      "MODEL"
+    ],
+    [
+      212,
+      101,
+      0,
+      85,
+      8,
+      "OPTIONS"
+    ],
+    [
+      214,
+      74,
+      0,
+      102,
+      0,
+      "*"
+    ],
+    [
+      215,
+      102,
+      0,
+      103,
+      0,
+      "*"
+    ],
+    [
+      216,
+      103,
+      0,
+      85,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      218,
+      104,
+      0,
+      105,
+      0,
+      "*"
+    ],
+    [
+      219,
+      75,
+      0,
+      104,
+      0,
+      "*"
+    ],
+    [
+      220,
+      105,
+      0,
+      85,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      221,
+      80,
+      0,
+      106,
+      0,
+      "VAE"
+    ],
+    [
+      225,
+      76,
+      0,
+      93,
+      0,
+      "MODEL"
+    ],
+    [
+      226,
+      78,
+      0,
+      93,
+      1,
+      "CLIP"
+    ],
+    [
+      227,
+      93,
+      0,
+      89,
+      0,
+      "MODEL"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8960587458018023,
+      "offset": [
+        -944.5282181189455,
+        532.3487649986714
+      ]
+    },
+    "frontendVersion": "1.23.4",
+    "ue_links": [
+      {
+        "downstream": 79,
+        "downstream_slot": 1,
+        "upstream": "80",
+        "upstream_slot": 0,
+        "controller": 106,
+        "type": "VAE"
+      }
+    ],
+    "links_added_by_ue": [
+      224
+    ],
+    "VHS_latentpreview": true,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

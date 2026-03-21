@@ -20,6 +20,7 @@ echo "[start] env=staging | volume=${VOLUME_PATH} | port=${COMFYUI_PORT} | vram=
 echo "[start] ensuring volume directory structure..."
 
 mkdir -p \
+    "${VOLUME_PATH}/user/default/workflows" \
     "${VOLUME_PATH}/models/checkpoints" \
     "${VOLUME_PATH}/models/diffusion_models" \
     "${VOLUME_PATH}/models/text_encoders" \
@@ -53,6 +54,9 @@ ln -sf "${VOLUME_PATH}/outputs"      "${COMFYUI_DIR}/output"
 
 rm -rf "${COMFYUI_DIR}/input"
 ln -sf "${VOLUME_PATH}/input"        "${COMFYUI_DIR}/input"
+
+rm -rf "${COMFYUI_DIR}/user"
+ln -sf "${VOLUME_PATH}/user"         "${COMFYUI_DIR}/user"
 
 echo "[start] symlinks ready."
 

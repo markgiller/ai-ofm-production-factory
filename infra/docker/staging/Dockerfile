@@ -62,6 +62,7 @@ RUN pip install --no-cache-dir \
     scikit-image \
     kornia \
     sentencepiece \
+    huggingface_hub[cli] \
     spandrel \
     av \
     imageio \
