@@ -267,17 +267,27 @@ Three significant changes from the base FLUX architecture:
 
 ### Diffusion Model (pick one)
 
-| File | Source | Size | Use |
-|------|--------|------|-----|
-| `Chroma1-HD.safetensors` | `lodestones/Chroma1-HD` | ~18GB bf16 | **Training LoRA** |
-| `Chroma1-HD-fp8_scaled_rev2.safetensors` | `silveroxides/Chroma1-HD-fp8-scaled` | ~9GB | **ComfyUI generation** |
-| `Chroma1-HD-fp8_scaled_original_hybrid_small_rev2.safetensors` | silveroxides | — | Hybrid precision, needs custom loader |
-| `Chroma1-HD-fp8_scaled_original_hybrid_large_rev2.safetensors` | silveroxides | — | Hybrid precision, needs custom loader |
+| File | Source | Size | LoRA compat | Use |
+|------|--------|------|------------|-----|
+| `Chroma1-HD.safetensors` | `lodestones/Chroma1-HD` | ~18GB bf16 | Any | **Training LoRA** |
+| `Chroma1-HD-fp8_scaled_rev2.safetensors` | `silveroxides/Chroma1-HD-fp8-scaled` | ~9GB | **Regular LoRAs ✅** | **ComfyUI inference — use this with OneTrainer LoRAs** |
+| `Chroma1-HD-fp8matmulmixed_large_rev2.safetensors` | silveroxides | ~9GB | Unknown | New variant (matmul mixed precision) |
+| `Chroma1-HD-fp8mixed-final.safetensors` | silveroxides | ~9GB | Unknown | New variant (mixed final) |
+| `Chroma1-HD-fp8_scaled_defaultloader_hybrid_large_rev2.safetensors` | silveroxides | ~9GB | **Pruned flash-heun LoRAs ONLY ❌** | Hybrid precision, no custom loader needed but incompatible with regular LoRAs |
+| `Chroma1-HD-fp8_scaled_original_hybrid_small_rev2.safetensors` | silveroxides | — | Regular LoRAs ✅ | Hybrid precision, needs custom loader |
+| `Chroma1-HD-fp8_scaled_original_hybrid_large_rev2.safetensors` | silveroxides | — | Pruned flash-heun LoRAs ONLY ❌ | Hybrid precision, needs custom loader |
 
-**For our pipeline:** full model for training, fp8_scaled for ComfyUI inference.
+**⚠️ EMPIRICAL RESULT (tested 2026-03-21) — overrides documentation:**
+- `hybrid_large` + OneTrainer LoRA = **LoRA applies well, better identity** ✅
+- `fp8_scaled_rev2` + OneTrainer LoRA = weak LoRA effect, wrong identity ❌
 
-Hybrid precision variants require: `ComfyUI_Hybrid-Scaled_fp8-Loader` (silveroxides GitHub).
-Large variant must use pruned flash-heun LoRAs; small can use regular ones.
+Documentation says hybrid_large needs "pruned flash-heun LoRAs" — empirically wrong for our use case. **Use hybrid_large for inference with our LoRAs.**
+
+**For our pipeline:** full `Chroma1-HD.safetensors` for training, `Chroma1-HD-fp8_scaled_defaultloader_hybrid_large_rev2.safetensors` for ComfyUI inference.
+
+**Files on network volume:**
+- `/workspace/models/diffusion_models/Chroma1-HD-fp8_scaled_defaultloader_hybrid_large_rev2.safetensors` ✅ — **use this**
+- `/workspace/models/unet/Chroma1-HD-fp8_scaled_rev2.safetensors` — worse LoRA adherence in practice
 
 ### Text Encoder (T5 XXL — pick one)
 
@@ -299,6 +309,43 @@ Preferred over standard t5xxl for Chroma.
 | `ae.safetensors` | `Comfy-Org/Lumina_Image_2.0_Repackaged` |
 
 Same VAE as FLUX — if already downloaded, reuse it.
+
+---
+
+## LoRA Inference — Confirmed Working Config (tested 2026-03-21)
+
+### lora_lily_chroma_v001 on full bf16 model
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Model | `Chroma1-HD.safetensors` | Full bf16, 17.8GB on disk |
+| UNETLoader weight_dtype | `fp8_e4m3fn` | Quantizes on load: ~17GB → ~8.5GB VRAM. Required on 32GB GPU |
+| CLIP | `flan-t5-xxl_float8_e4m3fn_scaled_stochastic.safetensors` | chroma type |
+| LoRA | `lora_lily_chroma_v001.safetensors` | Final checkpoint (step 2700) |
+| LoRA strength_model | **1.5** | 1.0 = weak identity. 1.5 = best identity without artifact |
+| LoRA strength_clip | 1.0 | |
+| Resolution | 1152×1152 | |
+| Sampler | euler | |
+| Steps | 26 | |
+| CFG | 3.8 | |
+| Scheduler | BetaSamplingScheduler 0.45/0.45 | |
+
+**Checkpoint ranking (lora_lily_chroma_v001):** Final step 2700 > earlier checkpoints.
+
+**Working NSFW prompt formula:**
+```
+A photo of lily [action/pose description], [body visibility], [hair/wet state], ultrarealistic photo, IMG_XXXX.heic
+```
+
+**Example (confirmed working):**
+```
+A photo of lily completely naked after the shower, she is standing full height, mouth open,
+tongue out, spit it dripping off her tongue, breasts are visible, wet hair,
+ultrarealistic photo, IMG_2020.heic
+```
+
+**VRAM on RTX 5090 (32GB):** bf16 model as fp8_e4m3fn (~8.5GB) + flan-t5 fp8 (~5GB) + VAE (~0.5GB) + activations ≈ safe.
+Note: `weight_dtype=default` (bf16) fails OOM on second generation due to memory fragmentation.
 
 ---
 
@@ -577,3 +624,5 @@ Chroma1-Flash: 8 steps with heun/dpmpp_sde_ancestral, or 16 steps with multistep
 | 2026-03-21 | Inference pod configured. Models downloaded to network volume. RunPod setup documented. |
 | 2026-03-21 | Step 2 complete: Chroma1_HD_T2I workflow loaded in ComfyUI, settings verified. Step 3 complete: base model confirmed — photorealistic SFW and NSFW anatomy working, no "flux static". |
 | 2026-03-21 | Major KB update from levzzz Chroma guide: ai-toolkit NOT recommended → switching to OneTrainer/diffusion-pipe. Samplers, schedulers, quantization, model variants, prompting all updated. |
+| 2026-03-21 | LoRA compatibility clarified: hybrid_large variants require pruned flash-heun LoRAs ONLY — NOT compatible with OneTrainer LoRAs. Use fp8_scaled_rev2 for regular LoRA inference. New model variants added: fp8matmulmixed_large_rev2, fp8mixed-final. |
+| 2026-03-21 | lora_lily_chroma_v001 tested on full bf16 Chroma1-HD.safetensors (RTX 5090). Final checkpoint (step 2700) works best. Working config: UNETLoader weight_dtype=fp8_e4m3fn (halves VRAM: 17GB→8.5GB), LoRA strength=1.5, resolution 1152×1152. Realistic anatomy confirmed. Identity ~60-70% Lily — limited by single-source dataset. Full bf16 + fp8_e4m3fn quantization = reliable 32GB VRAM fit. |

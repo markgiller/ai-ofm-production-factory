@@ -1,0 +1,211 @@
+{
+  "last_node_id": 13,
+  "last_link_id": 16,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [0, 0],
+      "size": [315, 82],
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{"name": "MODEL", "type": "MODEL", "links": [1], "slot_index": 0}],
+      "properties": {"Node name for S&R": "UNETLoader"},
+      "widgets_values": ["flux1-dev-fp8.safetensors", "fp8_e4m3fn"]
+    },
+    {
+      "id": 2,
+      "type": "DualCLIPLoader",
+      "pos": [0, 120],
+      "size": [315, 106],
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{"name": "CLIP", "type": "CLIP", "links": [2], "slot_index": 0}],
+      "properties": {"Node name for S&R": "DualCLIPLoader"},
+      "widgets_values": ["t5xxl_fp8_e4m3fn.safetensors", "clip_l.safetensors", "flux"]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "pos": [0, 260],
+      "size": [315, 58],
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [{"name": "VAE", "type": "VAE", "links": [3, 4], "slot_index": 0}],
+      "properties": {"Node name for S&R": "VAELoader"},
+      "widgets_values": ["ae.safetensors"]
+    },
+    {
+      "id": 4,
+      "type": "LoraLoader",
+      "pos": [0, 350],
+      "size": [315, 126],
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 1, "slot_index": 0},
+        {"name": "clip", "type": "CLIP", "link": 2, "slot_index": 1}
+      ],
+      "outputs": [
+        {"name": "MODEL", "type": "MODEL", "links": [5], "slot_index": 0},
+        {"name": "CLIP", "type": "CLIP", "links": [6, 7], "slot_index": 1}
+      ],
+      "properties": {"Node name for S&R": "LoraLoader"},
+      "widgets_values": ["lora_lily_v001.safetensors", 1.2, 1.0]
+    },
+    {
+      "id": 5,
+      "type": "CLIPTextEncode",
+      "pos": [400, 0],
+      "size": [420, 130],
+      "order": 4,
+      "mode": 0,
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 6, "slot_index": 0}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [8], "slot_index": 0}],
+      "title": "Positive Prompt",
+      "properties": {"Node name for S&R": "CLIPTextEncode"},
+      "widgets_values": ["A photo of lily, close-up portrait, natural unposed expression, medium brown hair, realistic skin texture, soft natural lighting, photographic"]
+    },
+    {
+      "id": 6,
+      "type": "FluxGuidance",
+      "pos": [400, 160],
+      "size": [315, 58],
+      "order": 5,
+      "mode": 0,
+      "inputs": [{"name": "conditioning", "type": "CONDITIONING", "link": 8, "slot_index": 0}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [9], "slot_index": 0}],
+      "properties": {"Node name for S&R": "FluxGuidance"},
+      "widgets_values": [3.5]
+    },
+    {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [400, 250],
+      "size": [420, 80],
+      "order": 6,
+      "mode": 0,
+      "inputs": [{"name": "clip", "type": "CLIP", "link": 7, "slot_index": 0}],
+      "outputs": [{"name": "CONDITIONING", "type": "CONDITIONING", "links": [10], "slot_index": 0}],
+      "title": "Negative Prompt",
+      "properties": {"Node name for S&R": "CLIPTextEncode"},
+      "widgets_values": [""]
+    },
+    {
+      "id": 8,
+      "type": "LoadImage",
+      "pos": [0, 520],
+      "size": [315, 314],
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "IMAGE", "type": "IMAGE", "links": [11], "slot_index": 0},
+        {"name": "MASK", "type": "MASK", "links": [12], "slot_index": 1}
+      ],
+      "properties": {"Node name for S&R": "LoadImage"},
+      "widgets_values": ["example.png", "image"]
+    },
+    {
+      "id": 9,
+      "type": "VAEEncode",
+      "pos": [400, 460],
+      "size": [210, 46],
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {"name": "pixels", "type": "IMAGE", "link": 11, "slot_index": 0},
+        {"name": "vae", "type": "VAE", "link": 3, "slot_index": 1}
+      ],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [13], "slot_index": 0}],
+      "properties": {"Node name for S&R": "VAEEncode"},
+      "widgets_values": []
+    },
+    {
+      "id": 10,
+      "type": "SetLatentNoiseMask",
+      "pos": [400, 540],
+      "size": [210, 46],
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 13, "slot_index": 0},
+        {"name": "mask", "type": "MASK", "link": 12, "slot_index": 1}
+      ],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [14], "slot_index": 0}],
+      "properties": {"Node name for S&R": "SetLatentNoiseMask"},
+      "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "KSampler",
+      "pos": [760, 80],
+      "size": [315, 262],
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {"name": "model", "type": "MODEL", "link": 5, "slot_index": 0},
+        {"name": "positive", "type": "CONDITIONING", "link": 9, "slot_index": 1},
+        {"name": "negative", "type": "CONDITIONING", "link": 10, "slot_index": 2},
+        {"name": "latent_image", "type": "LATENT", "link": 14, "slot_index": 3}
+      ],
+      "outputs": [{"name": "LATENT", "type": "LATENT", "links": [15], "slot_index": 0}],
+      "properties": {"Node name for S&R": "KSampler"},
+      "widgets_values": [42, "fixed", 20, 1.0, "euler", "simple", 0.75]
+    },
+    {
+      "id": 12,
+      "type": "VAEDecode",
+      "pos": [1120, 80],
+      "size": [210, 46],
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {"name": "samples", "type": "LATENT", "link": 15, "slot_index": 0},
+        {"name": "vae", "type": "VAE", "link": 4, "slot_index": 1}
+      ],
+      "outputs": [{"name": "IMAGE", "type": "IMAGE", "links": [16], "slot_index": 0}],
+      "properties": {"Node name for S&R": "VAEDecode"},
+      "widgets_values": []
+    },
+    {
+      "id": 13,
+      "type": "SaveImage",
+      "pos": [1380, 80],
+      "size": [420, 200],
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {"name": "images", "type": "IMAGE", "link": 16, "slot_index": 0}
+      ],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": ["lily_face_inpaint"]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 4, 0, "MODEL"],
+    [2, 2, 0, 4, 1, "CLIP"],
+    [3, 3, 0, 9, 1, "VAE"],
+    [4, 3, 0, 12, 1, "VAE"],
+    [5, 4, 0, 11, 0, "MODEL"],
+    [6, 4, 1, 5, 0, "CLIP"],
+    [7, 4, 1, 7, 0, "CLIP"],
+    [8, 5, 0, 6, 0, "CONDITIONING"],
+    [9, 6, 0, 11, 1, "CONDITIONING"],
+    [10, 7, 0, 11, 2, "CONDITIONING"],
+    [11, 8, 0, 9, 0, "IMAGE"],
+    [12, 8, 1, 10, 1, "MASK"],
+    [13, 9, 0, 10, 0, "LATENT"],
+    [14, 10, 0, 11, 3, "LATENT"],
+    [15, 11, 0, 12, 0, "LATENT"],
+    [16, 12, 0, 13, 0, "IMAGE"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}
