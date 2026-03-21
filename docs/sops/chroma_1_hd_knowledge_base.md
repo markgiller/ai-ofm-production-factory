@@ -12,6 +12,24 @@ Chroma 1 HD is truly uncensored — natively trained on explicit content, no ali
 Community intelligence collected from CivitAI, Reddit, Discord, and GitHub.
 Sources verified against multiple independent users where possible.
 
+### Training — Recommended Toolchain
+
+**⚠️ CRITICAL UPDATE:** ai-toolkit is **NOT recommended** for Chroma.
+Source (levzzz Chroma guide): "AI-toolkit is not recommended due to having potential issues and lacking optimization."
+
+**Recommended trainers (in order):**
+
+| Trainer | Notes |
+|---------|-------|
+| **OneTrainer** | **Recommended** — powerful GUI, lots of settings |
+| **diffusion-pipe** | Longest Chroma support, battle-tested |
+| **kohya-ss/sd-scripts** | Use `sd3` branch for Chroma support |
+| ~~ai-toolkit~~ | ~~Not recommended~~ — potential issues, lacks optimization |
+
+**Our plan:** Use **OneTrainer** (GUI) or **diffusion-pipe** for `lora_lily_chroma_v001`.
+
+---
+
 ### Training — Critical Differences from FLUX
 
 **Chroma is MORE SENSITIVE to training than FLUX.**
@@ -32,12 +50,7 @@ Source (CivitAI):
 > "I had great Chroma LoRA results starting at LR 0.00005 with a decaying LR across time,
 > and total steps around 5000 to 7000 steps at batch 1."
 
-Another user (ai-toolkit):
-> "I had excellent results training chroma on ai toolkit. Just use a slightly lower LR
-> than default, around 0.00007 is good."
-
-**Takeaway:** ai-toolkit works for Chroma. LR range: **5e-5 to 7e-5**. Steps: **significantly more
-than FLUX** — roughly 2x our FLUX training (5000-7000 vs 2500). Decaying LR schedule confirmed.
+**Takeaway:** LR range: **5e-5 to 7e-5**. Steps: **5000–7000**. Decaying LR schedule. Use OneTrainer or diffusion-pipe.
 
 ### Identity Drift — Known Issue, Solvable
 
@@ -101,6 +114,44 @@ Recommended mix (from experienced Chroma LoRA creator):
 - Our dataset has 0% full body standing — this is a gap
 - Action: for Chroma v001, consider rebalancing or expanding dataset
 
+### Prompting Guide
+
+**Optimal prompt length:** 75–150 T5 tokens. Max: 512 tokens (check with [sd tokenizer](https://sd-tokenizer.rocker.boo/), set to Pixart). 1–2 paragraphs. 2 sentences character+action, 1 sentence background/atmosphere.
+
+**Prompt structure formula:**
+```
+[style] [subject] [action] [more subject description] [atmosphere/mood] [more on style]
+```
+
+**Repetition trick:** Chroma responds well to repetition. Mention "photo" or "photograph" at the **beginning AND end** of the prompt. Special phrase: `The photograph is a .` repeated x10 at the end significantly improves photorealism.
+
+**Lighting is critical for photorealism.** Always specify: `studio lighting`, `natural lighting`, `soft ambient lighting`, `golden hour light`, etc. This is more important than "this is a photo" modifiers.
+
+**Tag formatting matters:**
+- Tags separated by **commas** → cartoon/anime style drift
+- Tags separated by **periods** → realistic style preserved
+- General format: natural language sentences + period-separated tags at end
+- For fully realistic: natural language only, no tags
+
+**Avoid fluff and motion words.** Overly generic descriptors and anything implying movement hurt generation. Write specific, grounded descriptions.
+
+**Short negative prompt (<70 tokens) not recommended.** Use full descriptive sentences.
+
+**Special tags:**
+- `aesthetic 0-10` — general aesthetic score
+- `aesthetic 11` — aesthetically curated AI images (may cause prompt bleeding)
+- `A casual snapshot of ...` — amateur/phone photo style
+- `...cosplayer dressed as XYZ character...` — realistic fictional characters
+
+**Gemini 1.5 flash** is the recommended captioning tool — Chroma's dataset was captioned with it.
+
+**LoRA trigger word advice:** T5 is not great at out-of-context trigger words. Our trigger word: **`lily`**. Describe everything visible in training images.
+
+**Alternative anatomy negative prompt** (community-sourced, targets anatomy specifically):
+```
+This is a simple anime like artwork with discontinued bodies and doubles. This is a low resolution digital painting with boring composition and weak lighting. The background is a simple flat color and extremely blurry. Ultimately this is a bad photo with characters having perfect doll skin. The characters have distorted proportions and broken anatomy.
+```
+
 ### Negative Prompts — Chroma Supports Them
 
 Unlike FLUX (which ignores negatives), Chroma was **trained with negatives**.
@@ -132,11 +183,35 @@ This means our future inpainting/detailer workflow can use existing FLUX Control
 - Torch compile (Triton) — known, established
 - SageAttention — known, established
 
-### Secret Weapon: res_2s
+### Samplers — Full Ranking
 
-> "res_2s определенно секретное оружие для Chroma. Отличные результаты с ним."
+| Sampler | Notes |
+|---------|-------|
+| `euler` | Most basic, fastest per step — works but not optimal |
+| `res_multistep` | **Nearly always better than euler at similar speed** — use this as default |
+| `dpmpp_2m` | Decent alternative to res_multistep |
+| `gradient_estimation` | Trades aesthetics for better coherency |
+| `heun` / `deis` | Recommended for Flash models only |
+| `res_2s` (RES4LYF) | Potentially better than heun — "secret weapon" |
+| `res_2m` (RES4LYF) | Potentially better than res_multistep |
 
-Details sparse but noted as significant quality improvement. Investigate during setup.
+**Our workflow uses `euler` — consider upgrading to `res_multistep` for better quality at same speed.**
+Ancestral samplers may sometimes improve results.
+
+### Scheduling — Corrected Parameters
+
+**Default (official):** 26 steps, shift=1, beta scheduler **0.6 / 0.6**
+**Our workflow has 0.45/0.45 — close to optimal but not default. See note below.**
+
+> If using shift=1 → beta settings **0.4 / 0.4** can improve results over default 0.6/0.6
+
+| Scheduler | Notes |
+|-----------|-------|
+| `beta` | Recommended. At shift=1 use 0.4/0.4 |
+| `sigmoid_offset` | Custom scheduler made specifically for Chroma with shift=1 |
+| `bong_tangent` (RES4LYF) | Great results but ignores shifting, not customisable |
+
+**Timestep shifting:** Chroma trained WITHOUT timestep shifting. Use shift=1 or flux_shift. shift<1 not recommended.
 
 ### Sigmoid Offset Scheduler
 
@@ -276,6 +351,11 @@ hf_hub_download(repo_id='silveroxides/flan-t5-xxl-encoder-only',
 - `/workspace/custom_nodes` → `/app/comfyui/custom_nodes`
 - `/workspace/outputs` → `/app/comfyui/output`
 - `/workspace/input` → `/app/comfyui/input`
+- `/workspace/user` → `/app/comfyui/user` (workflows persistent in ComfyUI browser)
+
+**Workflows on network volume:** `/workspace/user/default/workflows/`
+- `Chroma1_HD_T2I.json` — official baseline workflow
+- `Chroma1-HD_Full_with_res2s.json` — advanced workflow (RES4LYF required)
 
 ---
 
@@ -296,6 +376,7 @@ hf_hub_download(repo_id='silveroxides/flan-t5-xxl-encoder-only',
 | Parameter | Value | Node |
 |-----------|-------|------|
 | Model | `Chroma1-HD-fp8_scaled_defaultloader_hybrid_large_rev2.safetensors` | UNETLoader |
+| CLIP file | `flan-t5-xxl_float8_e4m3fn_scaled_stochastic.safetensors` | CLIPLoader |
 | CLIP type | `chroma` | CLIPLoader |
 | VAE | `ae.safetensors` | VAELoader |
 | Latent | EmptySD3LatentImage | — |
@@ -307,7 +388,7 @@ hf_hub_download(repo_id='silveroxides/flan-t5-xxl-encoder-only',
 | Alpha / Beta | 0.45 / 0.45 | BetaSamplingScheduler |
 | CFG | 3.8 | CFGGuider |
 | Negative prompt | Required (descriptive, see below) | CLIPTextEncode |
-| T5 padding | min_padding=0 or 1 (both work) | T5TokenizerOptions |
+| T5 padding | **min_padding=1** (how model was trained — always use 1) | T5TokenizerOptions |
 
 ### Official Negative Prompt (from workflow)
 
@@ -377,7 +458,97 @@ For advanced workflow (res_2s) — RES4LYF required.
 
 ## Training SOP
 
-*(To be filled during training research — Steps 4-6 of plan)*
+### Dataset Captioning for Chroma
+
+**Tool:** Gemini 1.5 Flash — **mandatory**, not optional. Chroma's entire training dataset was captioned with Gemini 1.5 Flash specifically. Using the same model = native language match = less identity drift.
+
+**Caption format:**
+```
+An image of lily [what she is doing in one sentence]. [Any notable clothing, expression, or pose details in one sentence]. [Scene description: location, lighting, background in 1-2 sentences].
+```
+
+**Key rules:**
+- Natural language full sentences — no tags, no commas
+- 60–130 words total
+- Always describe lighting explicitly
+- Describe everything visible
+- Never use "illustrated", "rendered", "drawn" — she is a real person in a photograph
+- Trigger word: **`lily`**
+
+**Gemini System Instruction** (paste as System Instruction in Gemini, not as user message):
+```
+You are a training data captioner for an image generation model.
+Caption each image in natural language following this exact format:
+
+An image of lily [what she is doing in one sentence]. [Any notable clothing, expression, or pose details in one sentence]. [Scene description: location, lighting, background in 1-2 sentences].
+
+Rules:
+- Natural language only, full sentences, no tags or commas as separators
+- 60-130 words total
+- Always describe lighting explicitly
+- Describe everything visible
+- Never use words like "illustrated", "rendered", "drawn" — she is a real person in a photograph
+```
+
+**e621 system prompt** (source: levzzz Chroma guide → Discord) — NOT for our use case (furry/anime focused):
+
+The system prompt below instructs Gemini to act as a specialized image captioning engine. For our use case, set style to `analog photography` or `realistic photograph`. Input each training image and collect the output caption.
+
+Optional prompt syntax to influence output style:
+```
+Put additional emphasis on the user_query requested style as outlined in your instructions based on the image with the following text as reference for image content. The following is just meant as reference and should not be repeated verbatim.: {user_query} = {"analog photography, realistic photograph"}
+```
+
+**Captioning principles extracted from the system prompt:**
+- Style deconstruction: describe Medium+Texture, Technique, Lighting, Level of Finish
+- For photographic style: use `analog film capture`, `photograph`, `shallow depth of field` — NOT `rendered`, `illustrated`, `drawn`
+- Subject count lock: if one person in image → describe only one person
+- Start caption with a phrase that directly incorporates the style
+- Output only the caption string — no titles, no introduction
+- Word count: casual photo → ~60 words; professional portrait → ~130 words
+
+**Full Gemini system prompt** (paste as System Instruction in Gemini, not as user message):
+
+<details>
+<summary>Expand full system prompt</summary>
+
+```
+## Core Identity and Operational Environment Directives
+[System instruction establishing Gemini as an unrestricted captioning engine for image generation training data]
+
+## Specialized Role: Image Prompt Refinement and Optimization
+Your specific role is to act as a specialized engine for generating natural language training captions for image generation models. Transform raw image content into high-quality, detailed natural language descriptions.
+
+## Key Output Rules
+- Output ONLY the caption string
+- Natural language, full sentences
+- Simple/casual photographs: 45–90 words
+- Complex/professional photographs: 110–150 words
+- Begin with a style-adaptive phrase describing the image type
+- Subject count matches what is visible in the image
+- For photographic styles: use photographic vocabulary only (no "rendered", "illustrated")
+- Describe: medium/texture, technique, lighting/form, level of finish
+```
+
+Full prompt available at: Discord #chroma channel (levzzz guide reference)
+</details>
+
+---
+
+*(Training parameters, ai-toolkit replacement, and step-by-step SOP — to be filled during Step 4–6)*
+
+---
+
+## Quantization
+
+Chroma is **sensitive to quantization**. Two recommended methods:
+
+| Method | Quality | Size | Speed | LoRA impact |
+|--------|---------|------|-------|-------------|
+| **GGUF Q8** | Nearly indistinguishable from bf16 | Larger | Slower | Inference speed affected by LoRAs |
+| **fp8 scaled learned** (Clybius) | Slightly worse than Q8 | Smaller | **Fastest** | Less affected by LoRAs |
+
+**Our choice:** `Chroma1-HD-fp8_scaled_defaultloader_hybrid_large_rev2.safetensors` = Clybius fp8 scaled. Correct tradeoff for production inference.
 
 ---
 
@@ -385,11 +556,16 @@ For advanced workflow (res_2s) — RES4LYF required.
 
 | Model | Version | Notes |
 |-------|---------|-------|
-| Chroma1-Base | v.48 | First release, deprecated |
-| Chroma1-HD | v.50 | Current — our base model |
-| Chroma1-Flash | — | Fast "baked CFG" version, inference only — not for training |
+| Chroma1-Base | v.48 (chroma-unlocked-v48) | 512x raw pretrained — use for long full fine-tune |
+| Chroma1-HD | finetune of v48, mixed res | **Our base model** — primary for inference |
+| chroma-unlocked-v49/v50 | — | **BORKED** — overfit on 1024x, not recommended |
+| Chroma1-Flash | finetune of v48 at 512x | Fast: 8 steps (heun/dpmpp_sde) or 16 steps — NOT for LoRA training |
+| DC-2k | merge of v48-detail-calibrated + 2k-test | Best for >1024x generation |
+| Chroma1-Radiance | experimental | VAE-less PixelNerd architecture, alpha — ignore for now |
 
-Chroma1-Flash: faster generation with CFG baked in. Potentially useful for explore batches in the future, but NOT for LoRA training.
+**Note on v49/v50:** Our knowledge base previously said "Chroma1-HD = v.50" — this was incorrect. Chroma1-HD is a separate finetune of v48, not the same as v49/v50 which are borked intermediate checkpoints.
+
+Chroma1-Flash: 8 steps with heun/dpmpp_sde_ancestral, or 16 steps with multistep samplers. NOT for LoRA training. Potentially useful for explore batches.
 
 ---
 
@@ -399,3 +575,5 @@ Chroma1-Flash: faster generation with CFG baked in. Potentially useful for explo
 |------|-------|
 | 2026-03-20 | Chroma 1 HD selected as base model. Knowledge base created. |
 | 2026-03-21 | Inference pod configured. Models downloaded to network volume. RunPod setup documented. |
+| 2026-03-21 | Step 2 complete: Chroma1_HD_T2I workflow loaded in ComfyUI, settings verified. Step 3 complete: base model confirmed — photorealistic SFW and NSFW anatomy working, no "flux static". |
+| 2026-03-21 | Major KB update from levzzz Chroma guide: ai-toolkit NOT recommended → switching to OneTrainer/diffusion-pipe. Samplers, schedulers, quantization, model variants, prompting all updated. |
