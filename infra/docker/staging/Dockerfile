@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libgomp1 \
     ffmpeg \
+    g++ \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -66,7 +67,9 @@ RUN pip install --no-cache-dir \
     spandrel \
     av \
     imageio \
-    imageio-ffmpeg
+    imageio-ffmpeg \
+    insightface \
+    onnxruntime-gpu
 
 # ── ComfyUI ───────────────────────────────────────────────────────────────────
 # Pinned to COMFYUI_VERSION. NO model weights baked into the image.

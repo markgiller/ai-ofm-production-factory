@@ -114,52 +114,14 @@ Recommended mix (from experienced Chroma LoRA creator):
 - Our dataset has 0% full body standing — this is a gap
 - Action: for Chroma v001, consider rebalancing or expanding dataset
 
-### Prompting Guide
+### Prompting
 
-**Optimal prompt length:** 75–150 T5 tokens. Max: 512 tokens (check with [sd tokenizer](https://sd-tokenizer.rocker.boo/), set to Pixart). 1–2 paragraphs. 2 sentences character+action, 1 sentence background/atmosphere.
+→ See [chroma_prompting.md](chroma_prompting.md) for full prompting guide, negative prompts, samplers, schedulers, CFG, and dataset captioning.
 
-**Prompt structure formula:**
-```
-[style] [subject] [action] [more subject description] [atmosphere/mood] [more on style]
-```
-
-**Repetition trick:** Chroma responds well to repetition. Mention "photo" or "photograph" at the **beginning AND end** of the prompt. Special phrase: `The photograph is a .` repeated x10 at the end significantly improves photorealism.
-
-**Lighting is critical for photorealism.** Always specify: `studio lighting`, `natural lighting`, `soft ambient lighting`, `golden hour light`, etc. This is more important than "this is a photo" modifiers.
-
-**Tag formatting matters:**
-- Tags separated by **commas** → cartoon/anime style drift
-- Tags separated by **periods** → realistic style preserved
-- General format: natural language sentences + period-separated tags at end
-- For fully realistic: natural language only, no tags
-
-**Avoid fluff and motion words.** Overly generic descriptors and anything implying movement hurt generation. Write specific, grounded descriptions.
-
-**Short negative prompt (<70 tokens) not recommended.** Use full descriptive sentences.
-
-**Special tags:**
-- `aesthetic 0-10` — general aesthetic score
-- `aesthetic 11` — aesthetically curated AI images (may cause prompt bleeding)
-- `A casual snapshot of ...` — amateur/phone photo style
-- `...cosplayer dressed as XYZ character...` — realistic fictional characters
-
-**Gemini 1.5 flash** is the recommended captioning tool — Chroma's dataset was captioned with it.
-
-**LoRA trigger word advice:** T5 is not great at out-of-context trigger words. Our trigger word: **`lily`**. Describe everything visible in training images.
-
-**Alternative anatomy negative prompt** (community-sourced, targets anatomy specifically):
-```
-This is a simple anime like artwork with discontinued bodies and doubles. This is a low resolution digital painting with boring composition and weak lighting. The background is a simple flat color and extremely blurry. Ultimately this is a bad photo with characters having perfect doll skin. The characters have distorted proportions and broken anatomy.
-```
-
-### Negative Prompts — Chroma Supports Them
-
-Unlike FLUX (which ignores negatives), Chroma was **trained with negatives**.
-
-> "Chroma обучена с негативами, так что тебе либо нужно использовать негативы,
-> либо дополнять негативное условие."
-
-This is a workflow difference from FLUX — our ComfyUI workflow needs a negative prompt input.
+**Key facts:**
+- Chroma was trained with negatives — always provide a negative prompt (unlike FLUX)
+- Natural language sentences only — no comma-separated tags
+- Gemini 1.5 Flash for dataset captioning — mandatory (same tool used in Chroma training)
 
 ### ControlNet Compatibility
 
@@ -183,43 +145,11 @@ This means our future inpainting/detailer workflow can use existing FLUX Control
 - Torch compile (Triton) — known, established
 - SageAttention — known, established
 
-### Samplers — Full Ranking
+### Samplers & Schedulers
 
-| Sampler | Notes |
-|---------|-------|
-| `euler` | Most basic, fastest per step — works but not optimal |
-| `res_multistep` | **Nearly always better than euler at similar speed** — use this as default |
-| `dpmpp_2m` | Decent alternative to res_multistep |
-| `gradient_estimation` | Trades aesthetics for better coherency |
-| `heun` / `deis` | Recommended for Flash models only |
-| `res_2s` (RES4LYF) | Potentially better than heun — "secret weapon" |
-| `res_2m` (RES4LYF) | Potentially better than res_multistep |
+→ See [chroma_prompting.md](chroma_prompting.md) for full sampler ranking and scheduler parameters.
 
-**Our workflow uses `euler` — consider upgrading to `res_multistep` for better quality at same speed.**
-Ancestral samplers may sometimes improve results.
-
-### Scheduling — Corrected Parameters
-
-**Default (official):** 26 steps, shift=1, beta scheduler **0.6 / 0.6**
-**Our workflow has 0.45/0.45 — close to optimal but not default. See note below.**
-
-> If using shift=1 → beta settings **0.4 / 0.4** can improve results over default 0.6/0.6
-
-| Scheduler | Notes |
-|-----------|-------|
-| `beta` | Recommended. At shift=1 use 0.4/0.4 |
-| `sigmoid_offset` | Custom scheduler made specifically for Chroma with shift=1 |
-| `bong_tangent` (RES4LYF) | Great results but ignores shifting, not customisable |
-
-**Timestep shifting:** Chroma trained WITHOUT timestep shifting. Use shift=1 or flux_shift. shift<1 not recommended.
-
-### Sigmoid Offset Scheduler
-
-Custom scheduler for Chroma architecture by silveroxides (Chroma contributor).
-
-- GitHub: https://github.com/silveroxides/ComfyUI_SigmoidOffsetScheduler
-- Install as ComfyUI custom node
-- silveroxides is a direct contributor to Chroma model
+**Summary:** `res_multistep` > `euler` at same speed. Beta scheduler at 0.4/0.4 (shift=1). 26 steps default.
 
 ---
 
@@ -332,20 +262,10 @@ Same VAE as FLUX — if already downloaded, reuse it.
 
 **Checkpoint ranking (lora_lily_chroma_v001):** Final step 2700 > earlier checkpoints.
 
-**Working NSFW prompt formula:**
-```
-A photo of lily [action/pose description], [body visibility], [hair/wet state], ultrarealistic photo, IMG_XXXX.heic
-```
+→ For prompt formulas and working examples see [chroma_prompting.md](chroma_prompting.md).
 
-**Example (confirmed working):**
-```
-A photo of lily completely naked after the shower, she is standing full height, mouth open,
-tongue out, spit it dripping off her tongue, breasts are visible, wet hair,
-ultrarealistic photo, IMG_2020.heic
-```
-
-**VRAM on RTX 5090 (32GB):** bf16 model as fp8_e4m3fn (~8.5GB) + flan-t5 fp8 (~5GB) + VAE (~0.5GB) + activations ≈ safe.
-Note: `weight_dtype=default` (bf16) fails OOM on second generation due to memory fragmentation.
+**VRAM:** fp8_e4m3fn (~8.5GB) + flan-t5 fp8 (~5GB) + VAE (~0.5GB) + activations ≈ safe on both RTX 5090 (32GB) and RTX 4090 (24GB).
+`weight_dtype=default` (bf16) → OOM on second generation due to memory fragmentation.
 
 ---
 
@@ -507,82 +427,9 @@ For advanced workflow (res_2s) — RES4LYF required.
 
 ### Dataset Captioning for Chroma
 
-**Tool:** Gemini 1.5 Flash — **mandatory**, not optional. Chroma's entire training dataset was captioned with Gemini 1.5 Flash specifically. Using the same model = native language match = less identity drift.
+→ See [chroma_prompting.md](chroma_prompting.md) — Dataset Captioning section for full Gemini system instruction and caption format.
 
-**Caption format:**
-```
-An image of lily [what she is doing in one sentence]. [Any notable clothing, expression, or pose details in one sentence]. [Scene description: location, lighting, background in 1-2 sentences].
-```
-
-**Key rules:**
-- Natural language full sentences — no tags, no commas
-- 60–130 words total
-- Always describe lighting explicitly
-- Describe everything visible
-- Never use "illustrated", "rendered", "drawn" — she is a real person in a photograph
-- Trigger word: **`lily`**
-
-**Gemini System Instruction** (paste as System Instruction in Gemini, not as user message):
-```
-You are a training data captioner for an image generation model.
-Caption each image in natural language following this exact format:
-
-An image of lily [what she is doing in one sentence]. [Any notable clothing, expression, or pose details in one sentence]. [Scene description: location, lighting, background in 1-2 sentences].
-
-Rules:
-- Natural language only, full sentences, no tags or commas as separators
-- 60-130 words total
-- Always describe lighting explicitly
-- Describe everything visible
-- Never use words like "illustrated", "rendered", "drawn" — she is a real person in a photograph
-```
-
-**e621 system prompt** (source: levzzz Chroma guide → Discord) — NOT for our use case (furry/anime focused):
-
-The system prompt below instructs Gemini to act as a specialized image captioning engine. For our use case, set style to `analog photography` or `realistic photograph`. Input each training image and collect the output caption.
-
-Optional prompt syntax to influence output style:
-```
-Put additional emphasis on the user_query requested style as outlined in your instructions based on the image with the following text as reference for image content. The following is just meant as reference and should not be repeated verbatim.: {user_query} = {"analog photography, realistic photograph"}
-```
-
-**Captioning principles extracted from the system prompt:**
-- Style deconstruction: describe Medium+Texture, Technique, Lighting, Level of Finish
-- For photographic style: use `analog film capture`, `photograph`, `shallow depth of field` — NOT `rendered`, `illustrated`, `drawn`
-- Subject count lock: if one person in image → describe only one person
-- Start caption with a phrase that directly incorporates the style
-- Output only the caption string — no titles, no introduction
-- Word count: casual photo → ~60 words; professional portrait → ~130 words
-
-**Full Gemini system prompt** (paste as System Instruction in Gemini, not as user message):
-
-<details>
-<summary>Expand full system prompt</summary>
-
-```
-## Core Identity and Operational Environment Directives
-[System instruction establishing Gemini as an unrestricted captioning engine for image generation training data]
-
-## Specialized Role: Image Prompt Refinement and Optimization
-Your specific role is to act as a specialized engine for generating natural language training captions for image generation models. Transform raw image content into high-quality, detailed natural language descriptions.
-
-## Key Output Rules
-- Output ONLY the caption string
-- Natural language, full sentences
-- Simple/casual photographs: 45–90 words
-- Complex/professional photographs: 110–150 words
-- Begin with a style-adaptive phrase describing the image type
-- Subject count matches what is visible in the image
-- For photographic styles: use photographic vocabulary only (no "rendered", "illustrated")
-- Describe: medium/texture, technique, lighting/form, level of finish
-```
-
-Full prompt available at: Discord #chroma channel (levzzz guide reference)
-</details>
-
----
-
-*(Training parameters, ai-toolkit replacement, and step-by-step SOP — to be filled during Step 4–6)*
+**Key fact:** Gemini 1.5 Flash is mandatory — Chroma's training data was captioned with it. Same tool = native language match = less identity drift.
 
 ---
 
@@ -626,3 +473,5 @@ Chroma1-Flash: 8 steps with heun/dpmpp_sde_ancestral, or 16 steps with multistep
 | 2026-03-21 | Major KB update from levzzz Chroma guide: ai-toolkit NOT recommended → switching to OneTrainer/diffusion-pipe. Samplers, schedulers, quantization, model variants, prompting all updated. |
 | 2026-03-21 | LoRA compatibility clarified: hybrid_large variants require pruned flash-heun LoRAs ONLY — NOT compatible with OneTrainer LoRAs. Use fp8_scaled_rev2 for regular LoRA inference. New model variants added: fp8matmulmixed_large_rev2, fp8mixed-final. |
 | 2026-03-21 | lora_lily_chroma_v001 tested on full bf16 Chroma1-HD.safetensors (RTX 5090). Final checkpoint (step 2700) works best. Working config: UNETLoader weight_dtype=fp8_e4m3fn (halves VRAM: 17GB→8.5GB), LoRA strength=1.5, resolution 1152×1152. Realistic anatomy confirmed. Identity ~60-70% Lily — limited by single-source dataset. Full bf16 + fp8_e4m3fn quantization = reliable 32GB VRAM fit. |
+| 2026-03-22 | RTX 4090 (24GB) confirmed working: Chroma1-HD.safetensors + UNETLoader weight_dtype=fp8_e4m3fn. No quality loss vs bf16 for production content. VRAM fits comfortably. |
+| 2026-03-22 | FLUX inpainting as identity fix — ABANDONED. FLUX/Chroma style mismatch + v001 identity weakness = result not publishable. Real solution: v002 dataset generated natively on Chroma → Gemini captions → retrain. |
