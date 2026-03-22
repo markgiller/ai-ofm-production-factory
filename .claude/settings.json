@@ -14,7 +14,8 @@
       "Bash(curl -s \"https://api.github.com/repos/ostris/ai-toolkit/contents/config/examples\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/ostris/ai-toolkit/main/config/examples/train_lora_flux_kontext_24gb.yaml\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/ostris/ai-toolkit/main/config/examples/train_lora_wan22_14b_24gb.yaml\")",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(python3:*)"
     ],
     "additionalDirectories": [
       "/Users/markgiller/Desktop/lora_chara_v002",

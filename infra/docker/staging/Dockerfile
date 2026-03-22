@@ -86,8 +86,6 @@ RUN chmod +x /app/start.sh
 
 EXPOSE 8188
 
-# /system_stats is available once ComfyUI is fully initialised.
-# start-period gives start.sh time to complete before checks begin.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -f "http://localhost:${COMFYUI_PORT:-8188}/system_stats" || exit 1
 

@@ -138,14 +138,14 @@ Ancestral samplers may sometimes improve results.
 ## Schedulers
 
 **Default (official):** 26 steps, shift=1, beta scheduler **0.6 / 0.6**
-**Our workflow:** 0.45/0.45 — close to optimal.
+**Our workflow:** sigmoid_offset scheduler, square_k=1.0, base_c=0.5 — confirmed best results.
 
 > At shift=1 → beta settings **0.4 / 0.4** can improve over default 0.6/0.6
 
 | Scheduler | Notes |
 |-----------|-------|
 | `beta` | Recommended. At shift=1 use 0.4/0.4 |
-| `sigmoid_offset` | Custom scheduler made specifically for Chroma with shift=1 |
+| `sigmoid_offset` | **Our default.** square_k=1.0, base_c=0.5. Made for Chroma with shift=1 |
 | `bong_tangent` (RES4LYF) | Great results but ignores shifting, not customisable |
 
 **Timestep shifting:** Chroma trained WITHOUT timestep shifting. Use shift=1 or flux_shift. shift<1 not recommended.
@@ -153,6 +153,7 @@ Ancestral samplers may sometimes improve results.
 **Sigmoid Offset Scheduler** — custom scheduler by silveroxides (Chroma contributor):
 - GitHub: https://github.com/silveroxides/ComfyUI_SigmoidOffsetScheduler
 - Install as ComfyUI custom node
+- **Our settings:** square_k=1.0, base_c=0.5 (tested, best photorealism)
 
 ---
 
