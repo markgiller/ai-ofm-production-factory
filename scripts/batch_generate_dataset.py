@@ -32,6 +32,9 @@ COMFYUI_URL = "http://127.0.0.1:8188"
 WORKSPACE = Path("/workspace")
 
 # Prompt file search paths (checked in order)
+WORKFLOW_API_FILE = WORKSPACE / "user/default/workflows/Character_Chroma.json"
+
+# Prompt file search paths (checked in order)
 PROMPT_SEARCH_PATHS = [
     WORKSPACE / "ai-ofm-production-factory/creative/prompts",
     WORKSPACE / "repo/creative/prompts",
