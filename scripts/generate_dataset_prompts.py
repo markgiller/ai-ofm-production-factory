@@ -15,7 +15,7 @@ import requests
 from pathlib import Path
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-GEMINI_API_KEY = "AIzaSyCyVuP2hImfypB93bD6sAuRkFbjaGmrEaA"
+GEMINI_API_KEY = "AIzaSyDVduTR1GHXYFCU4QWVoexlBFvqt4v_biY"
 GEMINI_MODEL = "gemini-2.5-flash"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
