@@ -31,13 +31,13 @@ from pathlib import Path
 COMFYUI_URL = "http://127.0.0.1:8188"
 WORKSPACE = Path("/workspace")
 
-WORKFLOW_API_FILE = WORKSPACE / "workflow_api.json"
-PROMPTS_WAVE1 = WORKSPACE / "repo/creative/prompts/lily_v002_dataset_prompts.json"
-PROMPTS_WAVE2 = WORKSPACE / "repo/creative/prompts/lily_v002_dataset_prompts_wave2.json"
-
-# Fallback paths (if repo not cloned yet)
-PROMPTS_WAVE1_ALT = Path("/workspace/creative/prompts/lily_v002_dataset_prompts.json")
-PROMPTS_WAVE2_ALT = Path("/workspace/creative/prompts/lily_v002_dataset_prompts_wave2.json")
+# Prompt file search paths (checked in order)
+PROMPT_SEARCH_PATHS = [
+    WORKSPACE / "ai-ofm-production-factory/creative/prompts",
+    WORKSPACE / "repo/creative/prompts",
+    WORKSPACE / "creative/prompts",
+    Path(__file__).parent.parent / "creative" / "prompts",
+]
 
 OUTPUT_PREFIX = "lily_v002_dataset"
 PROGRESS_FILE = WORKSPACE / "lily_v002_generation_progress.json"
@@ -58,6 +58,113 @@ NEGATIVE_PROMPT = (
     "overall composition. The image has extreme chromatic abberations and inconsistent lighting. "
     "Dull, monochrome colors and countless artistic errors."
 )
+
+
+# ─── UI → API Format Converter ────────────────────────────────────────────────
+
+def convert_ui_to_api(ui_workflow: dict) -> dict:
+    """Convert ComfyUI UI-format workflow to API format.
+
+    Uses /object_info from a running ComfyUI instance to map widget values
+    to parameter names. Falls back to embedded workflow if ComfyUI unreachable.
+    """
+    # Check if it's already API format (no "nodes" key, has string node IDs)
+    if "nodes" not in ui_workflow and all(isinstance(v, dict) for v in ui_workflow.values()):
+        return ui_workflow
+
+    # Build link lookup: link_id → (source_node_id, source_output_slot)
+    links = {}
+    for link in ui_workflow.get("links", []):
+        link_id = link[0]
+        source_node = link[1]
+        source_slot = link[2]
+        links[link_id] = (str(source_node), source_slot)
+
+    # Get node definitions from ComfyUI
+    node_info = {}
+    try:
+        with urllib.request.urlopen(f"{COMFYUI_URL}/object_info", timeout=10) as resp:
+            node_info = json.loads(resp.read())
+    except Exception:
+        print("  WARNING: Cannot reach ComfyUI for node info — using embedded workflow")
+        return get_embedded_workflow()
+
+    api = {}
+    for node in ui_workflow.get("nodes", []):
+        node_id = str(node["id"])
+        node_type = node["type"]
+
+        # Skip muted/bypassed nodes (mode 4 = muted, mode 2 = bypassed)
+        if node.get("mode", 0) in (2, 4):
+            continue
+
+        entry = {"class_type": node_type, "inputs": {}}
+
+        # Get input definitions from object_info
+        info = node_info.get(node_type, {})
+        required = info.get("input", {}).get("required", {})
+        optional = info.get("input", {}).get("optional", {})
+        all_inputs = {**required, **optional}
+
+        # Map connected inputs
+        connected_names = set()
+        for inp in node.get("inputs", []):
+            inp_name = inp["name"]
+            link_id = inp.get("link")
+            if link_id is not None and link_id in links:
+                src_node, src_slot = links[link_id]
+                entry["inputs"][inp_name] = [src_node, src_slot]
+                connected_names.add(inp_name)
+
+        # Map widget values to remaining input names
+        widget_names = [name for name in all_inputs if name not in connected_names]
+        widgets = node.get("widgets_values", [])
+        wi = 0
+        for wname in widget_names:
+            if wi < len(widgets):
+                entry["inputs"][wname] = widgets[wi]
+                wi += 1
+
+        api[node_id] = entry
+
+    return api
+
+
+def get_embedded_workflow() -> dict:
+    """Return the Character_Chroma workflow in API format (hardcoded fallback)."""
+    return {
+        "58": {"class_type": "LoadImage", "inputs": {"image": "05.png"}},
+        "172": {"class_type": "VAELoader", "inputs": {"vae_name": "ae.safetensors"}},
+        "178": {"class_type": "SaveImage", "inputs": {"filename_prefix": "lily_v002_dataset/output", "images": ["477", 0]}},
+        "204": {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "res_2s"}},
+        "206": {"class_type": "CFGGuider", "inputs": {"cfg": 3.2, "model": ["429", 0], "positive": ["425", 0], "negative": ["370", 0]}},
+        "207": {"class_type": "RandomNoise", "inputs": {"noise_seed": 100500}},
+        "208": {"class_type": "SamplerCustomAdvanced", "inputs": {"noise": ["207", 0], "guider": ["433", 0], "sampler": ["204", 0], "sigmas": ["484", 0], "latent_image": ["479", 0]}},
+        "251": {"class_type": "ttN text", "inputs": {"text": "placeholder"}},
+        "364": {"class_type": "CLIPTextEncode", "inputs": {"text": ["251", 0], "clip": ["367", 0]}},
+        "366": {"class_type": "CLIPLoader", "inputs": {"clip_name": "t5xxl_fp8_e4m3fn.safetensors", "type": "chroma", "device": "default"}},
+        "367": {"class_type": "T5TokenizerOptions", "inputs": {"min_padding": 1, "min_length": 0, "clip": ["366", 0]}},
+        "370": {"class_type": "CLIPTextEncode", "inputs": {"text": ["468", 0], "clip": ["367", 0]}},
+        "385": {"class_type": "ApplyPulidFlux", "inputs": {"weight": 1, "start_at": 0, "end_at": 0.55, "fusion": "train_weight", "fusion_weight_max": 1, "fusion_weight_min": 0, "train_step": 8000, "use_gray": True, "model": ["482", 0], "pulid_flux": ["386", 0], "eva_clip": ["391", 0], "face_analysis": ["392", 0], "image": ["58", 0], "prior_image": ["58", 0]}},
+        "386": {"class_type": "PulidFluxModelLoader", "inputs": {"pulid_file": "pulid_flux_v0.9.0.safetensors"}},
+        "391": {"class_type": "PulidFluxEvaClipLoader", "inputs": {}},
+        "392": {"class_type": "PulidFluxInsightFaceLoader", "inputs": {"provider": "CPU"}},
+        "425": {"class_type": "unCLIPConditioning", "inputs": {"strength": 10, "noise_augmentation": 0, "conditioning": ["364", 0], "clip_vision_output": ["426", 0]}},
+        "426": {"class_type": "CLIPVisionEncode", "inputs": {"crop": "none", "clip_vision": ["436", 0], "image": ["439", 0]}},
+        "429": {"class_type": "ModelSamplingFlux", "inputs": {"max_shift": 1, "base_shift": 0.5, "width": 768, "height": 1024, "model": ["385", 0]}},
+        "433": {"class_type": "easy cleanGpuUsed", "inputs": {"anything": ["206", 0]}},
+        "436": {"class_type": "AdvancedVisionLoader", "inputs": {"clip_name": "siglip2-so400m-patch16-512.safetensors"}},
+        "437": {"class_type": "easy imageRemBg", "inputs": {"rem_mode": "RMBG-1.4", "image_output": "Preview", "save_prefix": "ComfyUI", "torchscript_jit": False, "add_background": "none", "refine_foreground": False, "images": ["58", 0]}},
+        "439": {"class_type": "PrepImageForClipVisionV2", "inputs": {"interpolation": "LANCZOS", "crop_position": "center", "sharpening": 0, "image": ["437", 0]}},
+        "441": {"class_type": "PreviewImage", "inputs": {"images": ["439", 0]}},
+        "468": {"class_type": "ttN text", "inputs": {"text": "placeholder negative"}},
+        "469": {"class_type": "LoraLoaderModelOnly", "inputs": {"lora_name": "Hyper-Chroma-low-step-LoRA.safetensors", "strength_model": 1.0, "model": ["481", 0]}},
+        "477": {"class_type": "VAEDecode", "inputs": {"samples": ["208", 0], "vae": ["172", 0]}},
+        "479": {"class_type": "EmptyLatentImage", "inputs": {"width": 768, "height": 1024, "batch_size": 1}},
+        "481": {"class_type": "UNETLoader", "inputs": {"unet_name": "Chroma1-HD.safetensors", "weight_dtype": "fp8_e4m3fn"}},
+        "482": {"class_type": "LoraLoaderModelOnly", "inputs": {"lora_name": "lora_lily_chroma_v001.safetensors", "strength_model": 1.5, "model": ["469", 0]}},
+        "484": {"class_type": "SigmoidOffsetScheduler", "inputs": {"steps": 20, "square_k": 1, "base_c": 0.5, "model": ["429", 0]}},
+    }
 
 
 # ─── ComfyUI API ─────────────────────────────────────────────────────────────
@@ -191,17 +298,15 @@ def main():
 
     # ── Load workflow template ──
     workflow_path = Path(args.workflow)
-    if not workflow_path.exists():
-        print(f"\nERROR: Workflow API file not found: {workflow_path}")
-        print("\nTo create it:")
-        print("  1. Open ComfyUI in browser")
-        print("  2. Settings → Enable Dev Mode")
-        print("  3. Click 'Save (API Format)'")
-        print(f"  4. Save as: {WORKFLOW_API_FILE}")
-        return
-
-    with open(workflow_path) as f:
-        workflow_template = json.load(f)
+    if workflow_path.exists():
+        with open(workflow_path) as f:
+            raw = json.load(f)
+        print(f"\nWorkflow: {workflow_path}")
+        workflow_template = convert_ui_to_api(raw)
+    else:
+        print(f"\nWorkflow file not found: {workflow_path}")
+        print("Using embedded Character_Chroma workflow")
+        workflow_template = get_embedded_workflow()
 
     # Validate critical nodes exist
     for node_id, name in [(NODE_PROMPT, "prompt"), (NODE_SEED, "seed"), (NODE_SAVE, "save")]:
@@ -210,21 +315,35 @@ def main():
             print(f"Available nodes: {list(workflow_template.keys())[:20]}...")
             return
 
-    print(f"\nWorkflow: {workflow_path}")
-    print(f"Nodes: prompt={NODE_PROMPT}, negative={NODE_NEGATIVE}, seed={NODE_SEED}, save={NODE_SAVE}")
+    print(f"Nodes: {len(workflow_template)} | prompt={NODE_PROMPT}, negative={NODE_NEGATIVE}, seed={NODE_SEED}, save={NODE_SAVE}")
 
     # ── Load prompts ──
     waves = [int(w.strip()) for w in args.waves.split(",")]
     all_prompts = []
 
-    for wave_num in waves:
-        if wave_num == 1:
-            path = PROMPTS_WAVE1 if PROMPTS_WAVE1.exists() else PROMPTS_WAVE1_ALT
-        else:
-            path = PROMPTS_WAVE2 if PROMPTS_WAVE2.exists() else PROMPTS_WAVE2_ALT
+    wave_files = {
+        1: "lily_v002_dataset_prompts.json",
+        2: "lily_v002_dataset_prompts_wave2.json",
+    }
 
-        if not path.exists():
-            print(f"WARNING: Wave {wave_num} file not found: {path}")
+    for wave_num in waves:
+        fname = wave_files.get(wave_num)
+        if not fname:
+            print(f"WARNING: Unknown wave {wave_num}")
+            continue
+
+        # Search multiple paths
+        path = None
+        for search_dir in PROMPT_SEARCH_PATHS:
+            candidate = search_dir / fname
+            if candidate.exists():
+                path = candidate
+                break
+
+        if not path:
+            print(f"WARNING: Wave {wave_num} file '{fname}' not found in any search path")
+            for sp in PROMPT_SEARCH_PATHS:
+                print(f"  checked: {sp}")
             continue
 
         with open(path) as f:
