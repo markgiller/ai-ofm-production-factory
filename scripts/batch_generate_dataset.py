@@ -300,15 +300,21 @@ def main():
     print("=" * 70)
 
     # ── Load workflow template ──
-    workflow_path = Path(args.workflow)
-    if workflow_path.exists():
-        with open(workflow_path) as f:
-            raw = json.load(f)
-        print(f"\nWorkflow: {workflow_path}")
-        workflow_template = convert_ui_to_api(raw)
+    # Use embedded workflow by default (proven working).
+    # Only load from file if user explicitly passes --workflow.
+    if args.workflow != str(WORKFLOW_API_FILE):
+        workflow_path = Path(args.workflow)
+        if workflow_path.exists():
+            with open(workflow_path) as f:
+                raw = json.load(f)
+            print(f"\nWorkflow: {workflow_path}")
+            workflow_template = convert_ui_to_api(raw)
+        else:
+            print(f"\nWorkflow file not found: {workflow_path}")
+            print("Using embedded Character_Chroma workflow")
+            workflow_template = get_embedded_workflow()
     else:
-        print(f"\nWorkflow file not found: {workflow_path}")
-        print("Using embedded Character_Chroma workflow")
+        print("\nUsing embedded Character_Chroma workflow (verified)")
         workflow_template = get_embedded_workflow()
 
     # Validate critical nodes exist
@@ -465,6 +471,13 @@ def main():
                 fail_count += 1
                 print(f"    ✗ failed")
 
+        except urllib.error.HTTPError as e:
+            fail_count += 1
+            body = e.read().decode()[:500]
+            print(f"    ✗ HTTP {e.code}: {body}")
+            if fail_count >= 3 and success_count == 0:
+                print("\n  ABORT: First 3 jobs all failed. Fix the error above and retry.")
+                break
         except Exception as e:
             fail_count += 1
             print(f"    ✗ error: {e}")
