@@ -14,6 +14,10 @@ VRAM_MODE="${VRAM_MODE:-highvram}"
 
 echo "[start] env=staging | volume=${VOLUME_PATH} | port=${COMFYUI_PORT} | vram=${VRAM_MODE}"
 
+# ── Environment: point caches to persistent volume ──────────────────────────
+export HF_HOME="${VOLUME_PATH}/.cache/huggingface"
+export PIP_CACHE_DIR="${VOLUME_PATH}/.pip_cache"
+
 # ── Create volume directory structure ─────────────────────────────────────────
 # mkdir -p is idempotent — safe to run on an already-initialised volume.
 
@@ -31,6 +35,9 @@ mkdir -p \
     "${VOLUME_PATH}/models/upscale_models" \
     "${VOLUME_PATH}/models/controlnet" \
     "${VOLUME_PATH}/models/clip" \
+    "${VOLUME_PATH}/models/pulid" \
+    "${VOLUME_PATH}/models/insightface" \
+    "${VOLUME_PATH}/models/ipadapter" \
     "${VOLUME_PATH}/custom_nodes" \
     "${VOLUME_PATH}/outputs" \
     "${VOLUME_PATH}/input" \
